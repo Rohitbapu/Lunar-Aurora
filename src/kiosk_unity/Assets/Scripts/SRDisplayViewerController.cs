@@ -1,33 +1,29 @@
-using System;
 using UnityEngine;
-#if SRDISPLAY_SDK_PRESENT
-using SRD.Core;
-#endif
 
 namespace LunarAurora.Kiosk
 {
     /// <summary>
-    /// Controller for Sony Spatial Reality Display (ELF-SR1 / ELF-SR2).
-    /// Enforces VSync Count = 0 ("Don't Sync") per Sony SRDisplay hardware spec,
-    /// activates secondary operator display when connected, and supports No-SRD Simulation Mode.
+    /// Display & Simulation Camera Rig Controller for Lunar Aurora Unity Kiosk.
+    /// Currently runs in "No-SRD simulation mode" because the Sony SRDisplayUnityPlugin
+    /// is not installed in Packages/manifest.json and SRDISPLAY_SDK_PRESENT is unset.
+    /// See docs/sony_srd_integration_todo.md for Sony hardware integration steps.
     /// </summary>
     public class SRDisplayViewerController : MonoBehaviour
     {
-        [Header("Sony ELF-SR1 Holographic Box Bounds (Meters)")]
+        [Header("Simulated Holographic Box Bounds (Meters)")]
         public Vector3 holographicBoxSize = new Vector3(0.35f, 0.20f, 0.20f);
         public float frontClippingOffset = 0.04f;
         public float focalDistance = 0.45f;
 
-        [Header("Tracking, VSync & Simulation Modes")]
+        [Header("Simulation & Multi-Display State")]
         public bool hardwareSdkActive = false;
-        public bool forceNoSrdSimulation = false;
+        public bool forceNoSrdSimulation = true;
         public bool dualDisplayActive = false;
         public Camera fallbackHoloCamera;
         public Transform watcherTargetTransform;
 
         void Awake()
         {
-            // Mandatory Sony ELF-SR1 spec: VSync MUST be 0 to prevent stereo lenticular ghosting
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
 
@@ -43,18 +39,10 @@ namespace LunarAurora.Kiosk
         public void ApplyTrackingMode()
         {
 #if SRDISPLAY_SDK_PRESENT
-            var srdManager = SRDSceneEnvironment.GetSRDManager();
-            if (srdManager != null && !forceNoSrdSimulation)
-            {
-                hardwareSdkActive = true;
-                if (fallbackHoloCamera != null) fallbackHoloCamera.gameObject.SetActive(false);
-
-                Transform watcher = srdManager.transform.Find("WatcherAnchor");
-                if (watcher != null) watcherTargetTransform = watcher;
-
-                Debug.Log("[SRDisplayViewerController] Sony SRDisplay SDK eye-tracking active (VSync=0).");
-                return;
-            }
+            // TODO (see docs/sony_srd_integration_todo.md):
+            // Once Sony's official SRDisplayUnityPlugin is imported and symbol names are verified
+            // against the installed Sony package, bind the Sony SDK camera/rig active state here.
+            Debug.Log("[SRDisplayViewerController] SRDISPLAY_SDK_PRESENT defined; check docs/sony_srd_integration_todo.md to bind Sony SDK types.");
 #endif
             hardwareSdkActive = false;
             if (fallbackHoloCamera == null) fallbackHoloCamera = Camera.main;
@@ -104,7 +92,7 @@ namespace LunarAurora.Kiosk
 
         void OnDrawGizmos()
         {
-            Gizmos.color = hardwareSdkActive ? new Color(0f, 1f, 0.5f, 0.6f) : new Color(0f, 0.9f, 1f, 0.45f);
+            Gizmos.color = new Color(0f, 0.9f, 1f, 0.45f);
             Gizmos.DrawWireCube(Vector3.zero, holographicBoxSize);
         }
     }

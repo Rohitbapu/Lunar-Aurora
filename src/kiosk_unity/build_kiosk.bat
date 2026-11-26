@@ -3,7 +3,8 @@ set UNITY_EXE=C:\Program Files\Unity\Hub\Editor\6000.6.9f1\Editor\Unity.exe
 set PROJECT_DIR=%~dp0
 
 echo ========================================================
-echo   Lunar Aurora - Compiling Sony SRDisplay Standalone EXE
+echo   Lunar Aurora - Compiling Unity Kiosk Standalone EXE
+echo   Mode: No-SRD simulation mode (unless Sony plugin added)
 echo ========================================================
 echo Unity Path: "%UNITY_EXE%"
 echo Project:    "%PROJECT_DIR%"
@@ -20,7 +21,7 @@ echo Starting compilation in headless batchmode...
 
 if %ERRORLEVEL% equ 0 (
     echo.
-    echo [SUCCESS] Standalone EXE compiled successfully!
+    echo [SUCCESS] Standalone EXE compiled cleanly!
     echo Build Output Folder: "%PROJECT_DIR%Builds\Windows_SonySRDisplay\"
 ) else (
     echo.
@@ -28,4 +29,3 @@ if %ERRORLEVEL% equ 0 (
 )
 
 pause
-

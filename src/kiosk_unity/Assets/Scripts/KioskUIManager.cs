@@ -4,9 +4,8 @@ namespace LunarAurora.Kiosk
 {
     /// <summary>
     /// Exhibition & Operator HUD Controller.
-    /// - Display 0 stays free of 2D GUI when Sony hardware eye-tracking is live.
-    /// - Secondary display (Display 1 / SRD2DView Operator Panel) renders operator controls and telemetry.
-    /// - When running on a standard monitor (No-SRD Simulation Mode, toggle [S]), displays controls directly.
+    /// - Runs honestly in "No-SRD simulation mode" until the Sony SRDisplay plugin is installed.
+    /// - Mirrors telemetry and interactive controls onto "Operator HUD (second display)" when Display 1 exists.
     /// </summary>
     public class KioskUIManager : MonoBehaviour
     {
@@ -21,6 +20,15 @@ namespace LunarAurora.Kiosk
         public bool forceOperatorHudOnPrimary = false;
 
         private float smoothedFps = 60.0f;
+        private string dateEditBuffer = "2027-01-11";
+
+        void Start()
+        {
+            if (networkBridge != null && !string.IsNullOrEmpty(networkBridge.queryDate))
+            {
+                dateEditBuffer = networkBridge.queryDate;
+            }
+        }
 
         void Update()
         {
@@ -38,14 +46,11 @@ namespace LunarAurora.Kiosk
 
         public void DrawOperatorControlsRect(Rect areaRect)
         {
-            bool hardwareActive = srDisplayController != null && srDisplayController.hardwareSdkActive;
-            GUI.backgroundColor = new Color(0.04f, 0.08f, 0.15f, 0.90f);
+            GUI.backgroundColor = new Color(0.04f, 0.08f, 0.15f, 0.92f);
             GUILayout.BeginArea(areaRect, GUI.skin.box);
-            GUILayout.Label($"<size=17><b><color=#00e5ff>LUNAR AURORA • SRD2DView OPERATOR PANEL</color></b></size>");
+            GUILayout.Label("<size=16><b><color=#00e5ff>LUNAR AURORA • Operator HUD (second display)</color></b></size>");
 
-            string sdkState = hardwareActive
-                ? "<color=#00e676>Sony SRDisplay SDK Active (VSync=0)</color>"
-                : "<color=#f4c430>No-SRD Simulation Mode (No Sony Plugin)</color>";
+            string sdkState = "<color=#f4c430>No-SRD simulation mode (Sony plugin not installed)</color>";
             GUILayout.Label($"<size=12>{sdkState} • <b>{smoothedFps:F0} FPS</b> • VSync={QualitySettings.vSyncCount}</size>");
             GUILayout.Space(4);
 
@@ -56,26 +61,36 @@ namespace LunarAurora.Kiosk
 
             if (networkBridge != null)
             {
-                string conn = networkBridge.backendConnected ? "<color=#00e676>ONLINE</color>" : "<color=#ff8a65>SERVER OFFLINE (STANDBY)</color>";
-                GUILayout.Label($"<size=12><b>Telemetry ({conn}, 2s poll):</b> Sun Elev {networkBridge.currentSolarElevation:F1}°</size>");
-                GUILayout.Label($"<size=12><b>Est. Heat Saved (model estimate):</b> {networkBridge.heatExposureSavedPct:F1}% | Active Tourists: {networkBridge.activeTouristsTotal}</size>");
-                GUILayout.Label($"<size=11><b>Advice:</b> {networkBridge.shadeRecommendation}</size>");
+                if (networkBridge.backendConnected)
+                {
+                    GUILayout.Label(
+                        $"<size=12><b>Telemetry (<color=#00e676>ONLINE NOAA</color>):</b> {networkBridge.currentDate} | Elev {networkBridge.currentSolarElevation:F1}° | Azim {networkBridge.currentSolarAzimuth:F1}°</size>"
+                    );
+                    GUILayout.Label(
+                        $"<size=12><b>Est. Heat Saved (model estimate):</b> {networkBridge.heatExposureSavedPct:F1}% | Active Tourists: {networkBridge.activeTouristsTotal}</size>"
+                    );
+                    GUILayout.Label($"<size=11><b>Advice:</b> {networkBridge.shadeRecommendation}</size>");
+                }
+                else
+                {
+                    GUILayout.Label("<size=12><b>Telemetry (<color=#ff8a65>SERVER OFFLINE - STANDBY</color>):</b> Start FastAPI backend on :8000 for live NOAA solar arc.</size>");
+                }
             }
 
             GUILayout.Space(6);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("1. Shore (Illust.)", GUILayout.Height(28)) && monumentPreview != null) monumentPreview.SelectExhibit(HeritageExhibitType.ShoreTemple);
-            if (GUILayout.Button("2. Rathas (Illust.)", GUILayout.Height(28)) && monumentPreview != null) monumentPreview.SelectExhibit(HeritageExhibitType.PanchaRathas);
-            if (GUILayout.Button("3. Boulder (Illust.)", GUILayout.Height(28)) && monumentPreview != null) monumentPreview.SelectExhibit(HeritageExhibitType.KrishnasButterball);
+            if (GUILayout.Button("1. Shore (Illust.)", GUILayout.Height(26)) && monumentPreview != null) monumentPreview.SelectExhibit(HeritageExhibitType.ShoreTemple);
+            if (GUILayout.Button("2. Rathas (Illust.)", GUILayout.Height(26)) && monumentPreview != null) monumentPreview.SelectExhibit(HeritageExhibitType.PanchaRathas);
+            if (GUILayout.Button("3. Boulder (Illust.)", GUILayout.Height(26)) && monumentPreview != null) monumentPreview.SelectExhibit(HeritageExhibitType.KrishnasButterball);
             GUILayout.EndHorizontal();
 
             GUILayout.Space(4);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button(monumentPreview != null && monumentPreview.isExploded ? "Assemble" : "Explode (E)", GUILayout.Height(28)) && monumentPreview != null)
+            if (GUILayout.Button(monumentPreview != null && monumentPreview.isExploded ? "Assemble" : "Explode (E)", GUILayout.Height(26)) && monumentPreview != null)
                 monumentPreview.ToggleExplodedView();
-            if (GUILayout.Button(monumentPreview != null && monumentPreview.autoRotate ? "Pause Spin" : "Auto Spin", GUILayout.Height(28)) && monumentPreview != null)
+            if (GUILayout.Button(monumentPreview != null && monumentPreview.autoRotate ? "Pause Spin" : "Auto Spin", GUILayout.Height(26)) && monumentPreview != null)
                 monumentPreview.autoRotate = !monumentPreview.autoRotate;
-            if (GUILayout.Button("Guide Greet", GUILayout.Height(28)) && avatarGuide != null)
+            if (GUILayout.Button("Guide Greet", GUILayout.Height(26)) && avatarGuide != null)
                 avatarGuide.PlayWelcomeGreeting();
             GUILayout.EndHorizontal();
 
@@ -83,12 +98,29 @@ namespace LunarAurora.Kiosk
             {
                 GUILayout.Space(4);
                 GUILayout.BeginHorizontal();
-                GUILayout.Label($"<size=11>Sun Sweep ({monumentPreview.simulatedHour:F1}h):</size>", GUILayout.Width(115));
+                GUILayout.Label("<size=11>NOAA Date:</size>", GUILayout.Width(68));
+                dateEditBuffer = GUILayout.TextField(dateEditBuffer, 10, GUILayout.Width(90));
+                if (GUILayout.Button("Apply Date", GUILayout.Width(80)) && networkBridge != null)
+                {
+                    monumentPreview.simulatedDate = dateEditBuffer;
+                    networkBridge.SetSolarQuery(dateEditBuffer, monumentPreview.simulatedHour, true);
+                }
+                if (GUILayout.Button("Finale Jan 11", GUILayout.Width(85)) && networkBridge != null)
+                {
+                    dateEditBuffer = "2027-01-11";
+                    monumentPreview.simulatedDate = dateEditBuffer;
+                    networkBridge.SetSolarQuery(dateEditBuffer, monumentPreview.simulatedHour, true);
+                }
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"<size=11>IST Hour ({monumentPreview.simulatedHour:F1}h):</size>", GUILayout.Width(115));
                 float newHour = GUILayout.HorizontalSlider(monumentPreview.simulatedHour, 6.0f, 18.0f);
                 if (Mathf.Abs(newHour - monumentPreview.simulatedHour) > 0.05f)
                 {
                     monumentPreview.animateSunCycle = false;
                     monumentPreview.simulatedHour = newHour;
+                    if (networkBridge != null) networkBridge.SetSolarQuery(monumentPreview.simulatedDate, newHour, true);
                 }
                 if (GUILayout.Button(monumentPreview.animateSunCycle ? "Auto" : "Manual", GUILayout.Width(65)))
                 {
@@ -102,24 +134,18 @@ namespace LunarAurora.Kiosk
 
         void OnGUI()
         {
-            bool hardwareActive = srDisplayController != null && srDisplayController.hardwareSdkActive;
-            if (hardwareActive && !forceOperatorHudOnPrimary)
-            {
-                // Primary Sony ELF-SR1 3D viewport stays clean; secondary SRD2DView operator panel handles UI
-                return;
-            }
             if (!showOverlayInSimulation || !showOperatorPanel) return;
 
-            DrawOperatorControlsRect(new Rect(24, 24, 465, 345));
+            DrawOperatorControlsRect(new Rect(24, 24, 485, 365));
 
-            GUI.Box(new Rect(24, Screen.height - 74, 465, 50),
-                "<size=11><color=#00e676><b>Drag Orbit • Scroll Zoom • [1-3] Illustrative Models • [S] No-SRD Sim • [H] Hide HUD</b></color>\nSRD2DView Operator Panel mirrors onto secondary Display 1 when connected.</size>");
+            GUI.Box(new Rect(24, Screen.height - 74, 485, 50),
+                "<size=11><color=#00e676><b>Drag Orbit • Scroll Zoom • [1-3] Illustrative Models • [S] No-SRD Sim • [H] Hide HUD</b></color>\nNo-SRD simulation mode • Operator HUD (second display) mirrors onto Display 1 if connected.</size>");
         }
     }
 
     /// <summary>
-    /// Secondary Display (Display 1) SRD2DView Operator Window GUI component.
-    /// Renders operator telemetry & controls on the operator monitor so Display 0 stays 100% pure 3D.
+    /// Secondary Display (Display 1) Operator HUD (second display) GUI component.
+    /// Renders operator telemetry & controls on Display 1 when a secondary monitor is attached.
     /// </summary>
     public class KioskOperatorDisplayHUD : MonoBehaviour
     {
@@ -129,7 +155,7 @@ namespace LunarAurora.Kiosk
         {
             if (uiManager == null || !uiManager.showOperatorPanel) return;
             if (Display.displays.Length <= 1) return;
-            uiManager.DrawOperatorControlsRect(new Rect(24, 24, 520, 360));
+            uiManager.DrawOperatorControlsRect(new Rect(24, 24, 520, 365));
         }
     }
 }
