@@ -67,8 +67,9 @@ namespace LunarAurora.Kiosk
                         $"<size=12><b>Telemetry (<color=#00e676>ONLINE NOAA</color>):</b> {networkBridge.currentDate} | Elev {networkBridge.currentSolarElevation:F1}° | Azim {networkBridge.currentSolarAzimuth:F1}°</size>"
                     );
                     GUILayout.Label(
-                        $"<size=12><b>Est. Heat Saved (model estimate):</b> {networkBridge.heatExposureSavedPct:F1}% | Active Tourists: {networkBridge.activeTouristsTotal}</size>"
+                        $"<size=12><b>Illustrative Shade Score (<color=#ffca28>ASSUMED WEIGHTS</color>):</b> {networkBridge.heatExposureSavedPct:F1}% | Tourists: {networkBridge.activeTouristsTotal}</size>"
                     );
+                    GUILayout.Label("<size=10><color=#b0bec5>Distances from OpenStreetMap; canopy weights assumed/illustrative (not measured sun)</color></size>");
                     GUILayout.Label($"<size=11><b>Advice:</b> {networkBridge.shadeRecommendation}</size>");
                 }
                 else

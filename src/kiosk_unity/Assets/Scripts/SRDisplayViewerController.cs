@@ -1,11 +1,13 @@
+using System;
 using UnityEngine;
 
 namespace LunarAurora.Kiosk
 {
     /// <summary>
     /// Display & Simulation Camera Rig Controller for Lunar Aurora Unity Kiosk.
-    /// Currently runs in "No-SRD simulation mode" because the Sony SRDisplayUnityPlugin
-    /// is not installed in Packages/manifest.json and SRDISPLAY_SDK_PRESENT is unset.
+    /// Defaults to 3840x2160 FullScreenWindow (standalone build target), with a "-windowed"
+    /// (or "--windowed") command-line flag to launch windowed during development.
+    /// Currently runs in "No-SRD simulation mode" until Sony SRDisplayUnityPlugin is installed.
     /// See docs/sony_srd_integration_todo.md for Sony hardware integration steps.
     /// </summary>
     public class SRDisplayViewerController : MonoBehaviour
@@ -15,10 +17,11 @@ namespace LunarAurora.Kiosk
         public float frontClippingOffset = 0.04f;
         public float focalDistance = 0.45f;
 
-        [Header("Simulation & Multi-Display State")]
+        [Header("Display & Simulation Mode")]
         public bool hardwareSdkActive = false;
         public bool forceNoSrdSimulation = true;
         public bool dualDisplayActive = false;
+        public bool launchedWindowed = false;
         public Camera fallbackHoloCamera;
         public Transform watcherTargetTransform;
 
@@ -27,6 +30,8 @@ namespace LunarAurora.Kiosk
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
 
+            ApplyDisplayModeFromCli();
+
             if (Display.displays.Length > 1)
             {
                 Display.displays[1].Activate();
@@ -34,6 +39,34 @@ namespace LunarAurora.Kiosk
             }
 
             ApplyTrackingMode();
+        }
+
+        private void ApplyDisplayModeFromCli()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            launchedWindowed = false;
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (string.Equals(args[i], "-windowed", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(args[i], "--windowed", StringComparison.OrdinalIgnoreCase))
+                {
+                    launchedWindowed = true;
+                    break;
+                }
+            }
+
+            if (launchedWindowed)
+            {
+                int w = Mathf.Max(960, Mathf.Min(1600, Display.main.systemWidth - 120));
+                int h = Mathf.Max(540, Mathf.Min(900, Display.main.systemHeight - 120));
+                Screen.SetResolution(w, h, FullScreenMode.Windowed);
+                Debug.Log($"[SRDisplayViewerController] CLI -windowed switch active: {w}x{h} Windowed (No-SRD simulation mode).");
+            }
+            else
+            {
+                Screen.SetResolution(3840, 2160, FullScreenMode.FullScreenWindow);
+                Debug.Log("[SRDisplayViewerController] Default display mode active: 3840x2160 FullScreenWindow (No-SRD simulation mode). Pass -windowed for dev.");
+            }
         }
 
         public void ApplyTrackingMode()

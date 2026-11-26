@@ -53,22 +53,25 @@ namespace LunarAurora.Editor
             string exePath = Path.Combine(buildDir, "LunarAurora_Kiosk.exe");
 
             QualitySettings.vSyncCount = 0;
-            PlayerSettings.defaultScreenWidth = 1920;
-            PlayerSettings.defaultScreenHeight = 1080;
-            PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
+            PlayerSettings.defaultScreenWidth = 3840;
+            PlayerSettings.defaultScreenHeight = 2160;
+            PlayerSettings.fullScreenMode = FullScreenMode.FullScreenWindow;
+            PlayerSettings.resizableWindow = true;
             PlayerSettings.runInBackground = true;
             PlayerSettings.productName = "Lunar Aurora - Holographic Kiosk";
             PlayerSettings.companyName = "Lunar Aurora Team";
 
             string scenePath = "Assets/Scenes/MainKioskScene.unity";
             CreateDefaultKioskScene(scenePath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(scenePath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
 
             BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions
             {
                 scenes = new string[] { scenePath },
                 locationPathName = exePath,
                 target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.None
+                options = BuildOptions.CleanBuildCache
             };
 
             BuildReport report = BuildPipeline.BuildPlayer(buildPlayerOptions);
