@@ -9,8 +9,8 @@ class LocationTracker {
     this.currentLat = null;
     this.currentLon = null;
     this.accuracyMeters = null;
-    this.originLat = null;
-    this.originLon = null;
+    this.originLat = 12.6165181;
+    this.originLon = 80.1982844;
     this.isTracking = false;
     this.hasGpsFix = false;
     this.isSimulated = false;
@@ -22,15 +22,15 @@ class LocationTracker {
     this.userSiteX = 0;
     this.userSiteY = 0;
 
-    // Authentic 7-Stop Mahabalipuram monuments coordinates
+    // 7 Mahabalipuram stops with OpenStreetMap (ODbL) coordinates and metric offsets from Stop 1
     this.stopsReference = [
-      { step: 1, name: "Shore Temple Coastal Entry", x: 0, y: 0, lat: 12.6165, lon: 80.1993 },
-      { step: 2, name: "Shore Temple Shrines", x: 25, y: 40, lat: 12.6168, lon: 80.1995 },
-      { step: 3, name: "Pancha Rathas Monolithic Complex", x: 75, y: 85, lat: 12.6090, lon: 80.1895 },
-      { step: 4, name: "Arjuna's Penance (Descent of the Ganges)", x: 30, y: 110, lat: 12.6177, lon: 80.1928 },
-      { step: 5, name: "Krishna's Butterball (Vaan Irai Kal)", x: -20, y: 120, lat: 12.6191, lon: 80.1924 },
-      { step: 6, name: "Varaha Cave Temple", x: -40, y: 65, lat: 12.6184, lon: 80.1920 },
-      { step: 7, name: "Mahishasuramardini Mandapa", x: 60, y: 140, lat: 12.6163, lon: 80.1917 }
+      { step: 1, name: "Shore Temple Coastal Entry", x: 0.0, y: 0.0, lat: 12.6165181, lon: 80.1982844 },
+      { step: 2, name: "Shore Temple Shrines", x: 115.8, y: -7.2, lat: 12.6164535, lon: 80.1993500 },
+      { step: 3, name: "Pancha Rathas Monolithic Complex", x: -932.4, y: -829.7, lat: 12.6090647, lon: 80.1897016 },
+      { step: 4, name: "Arjuna's Penance (Descent of the Ganges)", x: -607.0, y: 154.8, lat: 12.6179087, lon: 80.1926969 },
+      { step: 5, name: "Krishna's Butterball (Vaan Irai Kal)", x: -638.9, y: 286.2, lat: 12.6190890, lon: 80.1924032 },
+      { step: 6, name: "Varaha Cave Temple", x: -658.4, y: 174.5, lat: 12.6180857, lon: 80.1922234 },
+      { step: 7, name: "Mahishasuramardini Mandapa", x: -732.8, y: -143.8, lat: 12.6152265, lon: 80.1915388 }
     ];
 
     this.onLocationUpdated = null;

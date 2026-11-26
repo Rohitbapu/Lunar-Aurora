@@ -15,12 +15,13 @@ class POINode(Base):
     historical_era = Column(String(64), default="7th-8th century CE Pallava Dynasty")
     source = Column(String(512), nullable=True)
 
-    # Local courtyard geometry (meters) and Mahabalipuram coordinates
+    # Local metric offset (meters from Stop 1) and verified OpenStreetMap coordinates
     x = Column(Float, nullable=False)
     y = Column(Float, nullable=False)
     z = Column(Float, default=0.0)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
+    coordinate_source = Column(String(256), nullable=True)
 
     has_benches = Column(Boolean, default=False)
     has_water = Column(Boolean, default=False)
@@ -37,6 +38,7 @@ class PathEdge(Base):
     source_id = Column(Integer, ForeignKey("poi_nodes.id"), nullable=False)
     target_id = Column(Integer, ForeignKey("poi_nodes.id"), nullable=False)
     distance_meters = Column(Float, nullable=False)
+    distance_source = Column(String(256), nullable=True)
     base_shade_factor = Column(Float, default=0.2)
     path_type = Column(String(32), default="colonnade")
     is_accessible = Column(Boolean, default=True)

@@ -11,52 +11,76 @@
 
 ## What Currently Works in This Repository
 1. **Zero-CDN Mobile WebXR & QR Ticketing (`src/frontend_webxr/` + `src/backend/`):**
-   - Counter ticket portal (`/ticket`, `/qr`) generates URL-encoded QR launch links in **English (`EN`)**, **Tamil (`TA`)**, or **Hindi (`HI`)** with self-signed LAN TLS (`generate_ssl_certs.py --ip`) so mobile browsers can access camera/orientation sensors over port `:8443`.
-   - All frontend runtime libraries (`three.min.js`, `GLTFLoader.js`, `tf.min.js`, `qrcode.min.js`, Font Awesome `6.5.1`) are vendored locally inside `src/frontend_webxr/vendor/`.
-   - 7 seeded Mahabalipuram monuments (`init_db.py`) with Wikipedia/UNESCO source URLs, interactive `+45 XP` riddles, **`54`** pre-synthesized EN/TA/HI fallback MP3s (`static/audio_cache/`), `DeviceOrientationEvent` WebAudio panner alignment (`spatialAudio.js`), AR photo capture, and downloadable multi-page `fpdf2` PDF Travel Journals.
-2. **Real NOAA Solar Geometry & Dual-Route ShadeMap (`routing_service.py` + `shadeMap.js`):**
-   - Computes real solar declination, equation of time, hour angle, solar elevation, and solar azimuth for `12.6165° N, 80.19° E` (IST) via the **NOAA General Solar Position Equations**, defaulting to **`2027-01-11`** and exposing `?date=` & `?hour=`.
+   - Counter ticket portal (`/ticket`, `/qr`) generates URL-encoded QR launch links in **English (`EN`)**, **Tamil (`TA`)**, or **Hindi (`HI`)** with self-signed LAN TLS (`generate_ssl_certs.py --ip`) so mobile browsers can access camera and orientation sensors over `:8443`.
+   - Runtime libraries (`three.min.js`, `GLTFLoader.js`, `tf.min.js`, `qrcode.min.js`, Font Awesome `6.5.1`) are vendored locally inside `src/frontend_webxr/vendor/`.
+   - 7 Mahabalipuram stops with OpenStreetMap (ODbL) coordinates (`node/1138027422`, `way/370135158`, `way/103082949`, `node/353978523`, `way/753671961`, `node/353978532`, `node/353978541`), real OpenStreetMap footpath/street walking distances (`255.0 m`–`1831.2 m`), Wikipedia/UNESCO sources, interactive `+45 XP` riddles, **`54`** pre-cached EN/TA/HI MP3s, `DeviceOrientationEvent` WebAudio panner alignment, watermarked snapshots, and `fpdf2` PDF Travel Journals.
+2. **Real NOAA Solar Geometry + Assumed-Shade Dijkstra Graph (`routing_service.py` + `shadeMap.js`):**
+   - Computes solar declination, equation of time, hour angle, solar elevation, and solar azimuth for `12.6165° N, 80.19° E` (IST) via the **NOAA General Solar Position Equations**, defaulting to **`2027-01-11`** and exposing `?date=` & `?hour=`.
    - Verified in `test_suite.py` (`09:00`: `30.75°` elev / `125.36°` azim; `12:00`: `55.22°` elev / `173.33°` azim; `16:00`: `25.23°` elev / `238.13°` azim — within `< 0.26°` of independent Meeus reference).
-   - Both WebXR ShadeMap date/hour controls and Unity `KioskNetworkBridge.cs` consume `/api/site/telemetry?date=...&hour=...` to update shortest sun vs. shaded Dijkstra routes (`80.5%` Heat Exposure Saved **model estimate** at `2027-01-11 12:00 IST`).
+   - **Important Modeling Disclosure:** While graph coordinates & walking distances come from OpenStreetMap, **the route graph shade weights and penalties are ASSUMED / ILLUSTRATIVE** (not physical pyranometer measurements). Using those assumed weights on `2027-01-11 12:00 IST` from Stop 1 -> Stop 7, shortest OSM walking (`[1, 4, 7]`, `1229.6 m`) vs assumed-shade OSM walking (`[1, 6, 7]`, `1369.7 m`) yields an **illustrative relative model score of `81.4%`** (do **not** interpret this as measured sun exposure).
 3. **Unity 6 Desktop Kiosk (`src/kiosk_unity/` — `No-SRD simulation mode`):**
-   - Builds cleanly to a standalone Windows x64 executable (`LunarAurora_Kiosk.exe`) distributed on **[GitHub Releases](https://github.com/Rohitbapu/Lunar-Aurora/releases)** (`Builds/` is gitignored).
-   - Displays 3 procedural Mahabalipuram **Illustrative model** placeholders (`Shore Temple`, `Pancha Rathas`, `Krishna's Butterball`), drives directional sunlight from the backend NOAA endpoint, and mirrors telemetry onto **`Operator HUD (second display)`**.
+   - Compiles cleanly to standalone Windows x64 (`LunarAurora_Kiosk.exe`) distributed on **[GitHub Releases](https://github.com/Rohitbapu/Lunar-Aurora/releases)** (`Builds/` is gitignored).
+   - Defaults to **`3840x2160` fullscreen**, with a **`-windowed`** command-line switch (`LunarAurora_Kiosk.exe -windowed`) for desktop development.
+   - Displays 3 procedural Mahabalipuram **Illustrative model** placeholders, drives directional sunlight from `/api/site/telemetry?date=...&hour=...`, and mirrors controls onto **`Operator HUD (second display)`**.
+
+---
+
+## Assumed / Illustrative Route Graph & Shade Weights
+All shade weights below in `src/backend/init_db.py` and `src/backend/app/services/routing_service.py` are **assumed placeholders**, not empirical canopy/radiometer measurements:
+
+| Edge Category / Parameter | Assumed Value / Rule |
+| :--- | :--- |
+| `cave_shelter` (`6->7`) | `base_shade_factor = 0.88`; `compute_dynamic_shade` clamps `[0.88, 0.95]` |
+| `cave_approach` (`5->6`) / `colonnade` | `base_shade_factor = 0.90`; `max(0.55, base_shade - 0.12 * sin(elev))` |
+| `tree_avenue` (`2->3: 0.72`, `2->4: 0.75`, `4->5: 0.78`, `3->4: 0.80`, `5->7: 0.82`, `1->6: 0.94`) | `max(0.45, base_shade - 0.15 * sin(elev))` |
+| `coastal_walk` (`1->2`) | `base_shade_factor = 0.65`; `max(0.20, base_shade * (1 - 0.45 * sin(elev)))` |
+| `open_stone` (`1->4: 0.10`, `4->7: 0.12`, `1->3: 0.12`, `3->7: 0.15`) | `max(0.05, base_shade * (1 - 0.55 * sin(elev)))` |
+| `monument_shadow` | `0.30` if `elev > 72°`, `max(base_shade, 0.78)` if `15°..72°`, else `0.55` |
+| Dijkstra shade penalty weight | `weight_shaded = distance_m * (1.0 + (1.0 - shade) * 2.8)` |
+| Assumed walking speed | `70.0 m/min` |
+
+### How to Calibrate
+1. **Canopy Sky-View Factor (SVF) Survey:** Capture hemispherical fisheye photos or LiDAR SVF along each Mahabalipuram OSM walkway edge connecting Stops `1`–`7` every `25–50 m`.
+2. **Irradiance Ratio Measurements:** Sample direct + diffuse solar irradiance (`W/m²`) under each tree canopy, cave entrance, and coastal wall relative to open reference `open_stone` at `09:00`, `12:00`, and `16:00 IST`.
+3. **Fit Empirical Shade Functions:** Replace assumed `base_shade_factor` values in `init_db.py` and the `sin(elev)` attenuation constants in `compute_dynamic_shade()` with measured attenuation by segment azimuth and solar elevation.
+4. **Tune Walk Speed & Detour Weight:** Replace `70.0 m/min` and `2.8` based on observed tourist walking speed and acceptable detour tolerance.
 
 ---
 
 ## Verified Backend Benchmarks (`benchmark_kpis.py` — 20 Iterations)
-Latest timestamped measurement file: `src/backend/benchmark_results_20261126_134622.json`.
+Latest timestamped JSON: `src/backend/benchmark_results_20261126_145557.json`.
 
 | Operation | Measured Mean | Measured P95 | Status |
 | :--- | :---: | :---: | :--- |
-| Dijkstra shaded-route compute (DB graph) | `0.33 ms` | `0.42 ms` | MEASURED |
+| Dijkstra shaded-route compute (DB graph) | `0.37 ms` | `0.55 ms` | MEASURED |
 | NOAA solar calculation (`2027-01-11 12:00 IST`) | `0.01 ms` | `0.01 ms` | MEASURED |
-| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `2.95 ms` | `3.22 ms` | MEASURED |
+| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `4.02 ms` | `4.47 ms` | MEASURED |
 | Online AI latency (`Groq + Edge-TTS`) | — | — | `NOT MEASURED - no API key` |
-| Vision metadata lookup (`POST /api/vision/identify`) | `5.80 ms` | `6.37 ms` | MEASURED |
-| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `5.44 ms` | `5.12 ms` | MEASURED |
-| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `12.77 ms` | `13.40 ms` | MEASURED |
-| Backend E2E & NOAA API test suite (`test_suite.py`) | `9/9` (`100.0%`) in `1658.05 ms` | — | MEASURED |
+| Vision metadata lookup (`POST /api/vision/identify`) | `7.26 ms` | `7.42 ms` | MEASURED |
+| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `6.09 ms` | `5.26 ms` | MEASURED |
+| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `14.03 ms` | `14.94 ms` | MEASURED |
+| Backend E2E & NOAA API test suite (`test_suite.py`) | `9/9` (`100.0%`) in `1845.43 ms` | — | MEASURED |
 
 Pending hardware measurements (tagged **`MEASURE ON DEVICE`** in JSON): `mobile_fps`, `qr_to_ar_launch_ms`, `vision_on_device_ms`, and `unity_frame_time_ms`.
 
 ---
 
 ## Known Limitations
-- **Sony ELF-SR1 Plugin Not Installed (`No-SRD simulation mode`):** Neither Sony's `SRDisplayUnityPlugin` nor `SRDISPLAY_SDK_PRESENT` is installed in `src/kiosk_unity/`. Eyetracked lenticular 3D output is **not** active yet; Unity runs only in `No-SRD simulation mode` until an engineer completes [docs/sony_srd_integration_todo.md](docs/sony_srd_integration_todo.md).
-- **On-Device Carving Classifier Not Trained (`Vision model not installed`):** `data/cards/` training video frames have not yet been captured from printed cards, so `src/frontend_webxr/assets/vision_model/model.json` does not exist yet. Tapping `SCAN RELIC` displays `"Vision model not installed"` rather than guessing (`train_classifier.py` + `tools/extract_frames.py` are ready once card videos are filmed).
-- **3D `.glb` Assets Are Procedural Placeholders:** Only `Grand_Solstice_Sun_Temple.glb` (labeled `"Illustrative model"`) is shown for `shore_temple_vimana`; `pancha_rathas`, `arjunas_penance`, `krishnas_butter_ball`, and `mahishasuramardini_cave` display verified Wikimedia photographs and sourced historical cards until team-authored meshes are placed in `src/frontend_webxr/assets/models/`.
-- **Heat Exposure Saved Is a Model Estimate:** Courtyard shade percentages (`80.5%`) come from `distance * (1 - dynamic_shade_factor)`, not physical pyranometer measurements.
-- **Groq Online AI Latency Unmeasured Locally:** `GROQ_API_KEY` was not set during benchmarking, so `benchmark_kpis.py` marked Groq + Edge-TTS as `NOT MEASURED - no API key`; offline fallback responses and pre-cached MP3s were tested instead.
-- **On-Device Phone & Unity Hardware Timing Unmeasured:** Mobile WebXR frame rate, QR launch time, TF.js mobile inference ms, and ELF-SR1 hardware frame time remain `MEASURE ON DEVICE`.
-- **Self-Signed TLS Certificate Prompt:** Visiting `https://<LAN-IP>:8443` from mobile browsers requires accepting the local self-signed development certificate warning generated by `generate_ssl_certs.py`.
+See full details in **[docs/known_limitations.md](docs/known_limitations.md)**:
+- **Sony ELF-SR1 Plugin Absent (`No-SRD simulation mode`):** `SRDisplayUnityPlugin` is not installed (`SRDISPLAY_SDK_PRESENT` undefined); eye-tracked lenticular 3D is not active yet ([docs/sony_srd_integration_todo.md](docs/sony_srd_integration_todo.md)).
+- **Vision Classifier Untrained (`Vision model not installed`):** `data/cards/` captures have not been filmed yet, so `model.json` does not exist; `SCAN RELIC` displays `"Vision model not installed"` rather than guessing.
+- **Procedural 3D Placeholders:** Only `Grand_Solstice_Sun_Temple.glb` (`Illustrative model`) renders for `shore_temple_vimana`; cards 02–05 show their Wikimedia photograph + facts panel; Unity renders procedural shapes.
+- **Assumed Route Shade Weights:** Distances come from OpenStreetMap (ODbL), but edge shade factors and penalties are illustrative placeholders, not measured irradiance/heat.
+- **Unmeasured Groq Benchmark & Hardware KPIs:** Groq AI latency is `NOT MEASURED - no API key`; phone FPS, QR launch time, mobile vision ms, and ELF-SR1 frame time remain `MEASURE ON DEVICE`.
+- **Self-Signed TLS Prompt:** Mobile HTTPS on `:8443` displays a browser warning for the local development certificate from `generate_ssl_certs.py`.
 
 ---
 
 ## Documentation & Deliverables
+- **[Known Limitations (`docs/known_limitations.md`)](docs/known_limitations.md)**
 - **[Accelerator & Technical Report (`docs/ax.md`)](docs/ax.md)**
 - **[System Architecture (`docs/architecture.md`)](docs/architecture.md)**
-- **[Open-Source Software & Media Attribution (`docs/oss_attribution.md`)](docs/oss_attribution.md)** *(Wikimedia Commons photos retain their individual CC BY / CC BY-SA licenses in `docs/carving_cards/images/LICENSE-NOTICE.md`)*
+- **[Open-Source Software, OSM & Media Attribution (`docs/oss_attribution.md`)](docs/oss_attribution.md)** *(OSM coordinates © OpenStreetMap contributors under ODbL 1.0; Wikimedia Commons images retain their licenses in `docs/carving_cards/images/LICENSE-NOTICE.md`)*
 - **[Sony SRDisplay Integration TODO (`docs/sony_srd_integration_todo.md`)](docs/sony_srd_integration_todo.md)**
 - **[XR Domain Justification (`docs/xr_domain_justification.md`)](docs/xr_domain_justification.md)**
 - **[Setup & User Guide (`docs/setup_and_user_guide.md`)](docs/setup_and_user_guide.md)**
@@ -75,4 +99,4 @@ python start_servers.py
 Then open `http://localhost:8000/ticket` or `http://localhost:8000/app/?demo=1`.
 
 ## Tooling Disclosure & License
-Software repository code is released under the [MIT License](LICENSE) — Team Lunar Aurora (2026) *(excluding third-party libraries and Wikimedia Commons images governed by their licenses in `docs/oss_attribution.md`)*. **Antigravity** was used as an AI coding assistant during development.
+Software repository code is released under the [MIT License](LICENSE) — Team Lunar Aurora (2026) *(excluding third-party libraries, OpenStreetMap data under ODbL 1.0, and Wikimedia Commons images governed by `docs/oss_attribution.md`)*. **Antigravity** was used as an AI coding assistant during development.

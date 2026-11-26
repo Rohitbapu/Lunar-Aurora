@@ -445,8 +445,9 @@ async function renderInteractiveBlueprintMap(targetOverrideId = null) {
       const detail = document.getElementById('map-route-detail');
       if (detail) {
         detail.innerHTML =
-          `<span style="color:#ff5252;">Direct Sun: ${tel.shortest_path.total_distance_meters}m (${tel.shortest_path.sun_exposure_meters}m model exposure)</span> vs ` +
-          `<span style="color:#00e676;">Shaded Route: ${tel.shaded_path.total_distance_meters}m (${tel.heat_exposure_saved_pct}% model estimate)</span>`;
+          `<span style="color:#ff5252;">Shortest OSM Walk: ${tel.shortest_path.total_distance_meters}m (avg assumed shade ${tel.shortest_path.average_shade_index})</span> vs ` +
+          `<span style="color:#00e676;">Assumed-Shade Route: ${tel.shaded_path.total_distance_meters}m (avg assumed shade ${tel.shaded_path.average_shade_index})</span> ` +
+          `<span style="color:#b0bec5;">(illustrative weights, not measured sun)</span>`;
       }
     }
   } catch (e) {}

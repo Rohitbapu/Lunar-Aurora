@@ -138,8 +138,9 @@ class RoutingService:
         elevation_deg: Optional[float] = None,
     ) -> float:
         """
-        Model estimate of dynamic shade factor [0.0..1.0] combining edge base_shade_factor,
-        path architectural cover, and NOAA solar elevation angle.
+        Assumed/illustrative dynamic shade factor [0.0..1.0] combining assumed edge
+        base_shade_factor, assumed path category cover, and NOAA solar elevation angle.
+        (Not a physical radiometric measurement; see README.md calibration guide.)
         """
         if elevation_deg is None:
             elevation, _ = self.calculate_solar_position(hour=hour, date_str=date_str)
@@ -381,7 +382,7 @@ class RoutingService:
             },
             "route_distance_delta_meters": dist_delta,
             "heat_exposure_saved_pct": heat_saved_pct,
-            "heat_estimate_note": "model estimate (distance x (1 - edge_shade_factor))",
+            "heat_estimate_note": "Assumed/illustrative shade weights over OpenStreetMap distances (model estimate, not measured sun exposure)",
             "solar_model": "NOAA General Solar Position Equations",
             "declination_deg": solar_details["declination_deg"],
             "equation_of_time_min": solar_details["equation_of_time_min"],
@@ -389,7 +390,7 @@ class RoutingService:
             "solar_elevation_deg": elev,
             "solar_azimuth_deg": azim,
             "sun_intensity": "HIGH (Peak Midday)" if is_peak else ("MODERATE" if elev > 25 else ("NIGHT / TWILIGHT" if elev <= 0 else "MILD")),
-            "shade_recommendation": "Use Shaded Cave Approach & Banyan Canopy (model estimate)" if is_peak else "Comfortable coastal breeze",
+            "shade_recommendation": "Assumed-shade hill/cave route (illustrative weights, not measured sun exposure)" if is_peak else "Moderate/low solar angle (NOAA model)",
             "active_visitor_nodes": active_counts,
             "active_tourists_total": len(active_sessions)
         }

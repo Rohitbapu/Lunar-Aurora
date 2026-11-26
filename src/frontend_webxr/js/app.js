@@ -679,16 +679,20 @@ function onArtifactIdentified(data) {
 }
 
 async function handleTakeARest() {
-  showNotification("Calculating coolest Mahabalipuram shaded route...");
+  showNotification("Computing assumed-shade Mahabalipuram route (OSM distances)...");
   const tm = window.tourManager;
   const currNode = (tm && tm.currentStopData && tm.currentStopData.poi_id) ? tm.currentStopData.poi_id : (tm ? tm.currentStep : 1);
+  const simHour = window.locationTracker && window.locationTracker.simulatedHour !== null
+    ? `&hour=${window.locationTracker.simulatedHour}`
+    : '';
+  const simDate = (window.locationTracker && window.locationTracker.simulatedDate) || '2027-01-11';
   try {
-    const res = await fetch(`/api/routing/take-a-rest?current_node_id=${currNode}`);
+    const res = await fetch(`/api/routing/take-a-rest?current_node_id=${currNode}&date=${encodeURIComponent(simDate)}${simHour}`);
     if (res.ok) {
       const data = await res.json();
       if (data.found) {
         const destNode = data.path_nodes[data.path_nodes.length - 1];
-        const msg = `Follow the green shaded route to ${destNode.name} (${data.total_distance_meters}m, estimated ${data.heat_exposure_saved_pct}% lower exposure — model estimate).`;
+        const msg = `Follow the green assumed-shade route to ${destNode.name} (${data.total_distance_meters}m via OpenStreetMap walkways; illustrative relative score ${data.heat_exposure_saved_pct}% — assumed weights, not measured sun).`;
         displaySubtitlesAndSpeak("Luna", "", msg, null, false);
         const mapModal = document.getElementById('modal-map');
         if (mapModal) {

@@ -50,10 +50,26 @@ Historical descriptions, monument dates, dimensions, riddles, and audio narratio
 | **FastAPI & Starlette** | https://github.com/fastapi/fastapi | MIT | REST API framework; unmodified. |
 | **Uvicorn** | https://github.com/encode/uvicorn | BSD-3-Clause | ASGI HTTP/HTTPS server; unmodified. |
 | **SQLAlchemy** | https://github.com/sqlalchemy/sqlalchemy | MIT | ORM & SQLite schema; unmodified. |
-| **NetworkX** | https://github.com/networkx/networkx | BSD-3-Clause | Dijkstra graph routing engine (`Heat Saved` values are model estimates, not measurements); unmodified. |
+| **NetworkX** | https://github.com/networkx/networkx | BSD-3-Clause | Dijkstra graph routing engine (paired with OpenStreetMap walking distances and assumed/illustrative canopy shade weights); unmodified. |
 | **Groq Python SDK (`groq`)** | https://github.com/groq/groq-python | Apache-2.0 | LLM client wrapped with `2.5s` async timeout in `groq_service.py`. |
 | **Edge-TTS (`edge-tts`)** | https://github.com/rany2/edge-tts | LGPL-3.0 | Neural voice synthesis; unmodified. |
 | **fpdf2 & Pillow** | https://github.com/py-pdf/fpdf2 / https://python-pillow.github.io/ | LGPL-3.0 / HPND | Travel Journal PDF export & image inspection; unmodified. |
 | **cryptography** | https://github.com/pyca/cryptography | Apache-2.0 / BSD-3-Clause | Self-signed TLS certificates with LAN IP SANs; unmodified. |
 | **HTTPX / Pydantic / Pydantic-Settings / aiofiles / psycopg2-binary** | PyPI upstream releases | BSD / MIT / LGPL | Test transport, validation, async I/O, optional Postgres driver; unmodified. |
 | **OpenCV (`opencv-python-headless`) / TensorFlow / TFJS / scikit-learn / Matplotlib** *(training only)* | PyPI upstream releases | Apache-2.0 / BSD | Frame extraction & MobileNetV2 classifier training pipeline (`requirements-train.txt`); unmodified. |
+
+## 6. Map Coordinates & Walking Network Distances (OpenStreetMap — ODbL 1.0)
+
+Stop coordinates and inter-stop walking distances in `src/backend/init_db.py` and `src/frontend_webxr/js/locationTracker.js` are derived from OpenStreetMap map data via the OpenStreetMap API (`bbox=80.188,12.607,80.201,12.621`), licensed under the **Open Database License (ODbL 1.0)** — © OpenStreetMap contributors (`https://www.openstreetmap.org/copyright`).
+
+| Stop | Database Slug | Latitude | Longitude | OpenStreetMap Source Object |
+| :---: | :--- | :---: | :---: | :--- |
+| `1` | `shore_temple_entry` | `12.6165181` | `80.1982844` | `node/1138027422` (`barrier=gate`, West Shore Temple entry footway `way/98366350`) |
+| `2` | `shore_temple_vimana` | `12.6164535` | `80.1993500` | `way/370135158` (`Mamallapuram Shore Temple` within `way/390473765`) |
+| `3` | `pancha_rathas` | `12.6090647` | `80.1897016` | `way/103082949` (`Pancha Rathas`) |
+| `4` | `arjunas_penance` | `12.6179087` | `80.1926969` | `node/353978523` (`Arjuna's Penance`) |
+| `5` | `krishnas_butter_ball` | `12.6190890` | `80.1924032` | `way/753671961` (`Krishna's Butterball`) |
+| `6` | `varaha_cave` | `12.6180857` | `80.1922234` | `node/353978532` (`Varaha Mandapam / Cave`) |
+| `7` | `mahishasuramardini_cave` | `12.6152265` | `80.1915388` | `node/353978541` (`Mahishamadhini Cave`) |
+
+*(Note: While node coordinates and Dijkstra footway distances on `path_edges` come from OpenStreetMap ODbL data, the per-edge `path_type` and `base_shade_factor` shade weights used for routing are **assumed/illustrative values** created by Team Lunar Aurora, not OSM tags or physical measurements.)*

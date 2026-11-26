@@ -1,6 +1,6 @@
 /**
- * ShadeMap.js - Renders Mahabalipuram 2D/Spatial Sanctuary Graph with Dual Solar vs. Shaded Routes,
- * Live Tourist Beacon, Active Visitor Crowd Badges, and Heat Exposure Saved (%) Readout.
+ * ShadeMap.js - Renders Mahabalipuram 2D/Spatial Sanctuary Graph using OpenStreetMap (ODbL)
+ * coordinates & walking distances paired with ASSUMED/ILLUSTRATIVE shade weights (not measured sun).
  */
 class ShadeMapRenderer {
     constructor(svgElement, badgeElement) {
@@ -12,12 +12,25 @@ class ShadeMapRenderer {
         this.visitedSteps = new Set([1]);
         this.currentStep = 1;
         this.playerPos = { x: 0, y: 0 };
+        this.bounds = { minX: -950, maxX: 150, minY: -850, maxY: 320 };
         this.onNodeClick = null;
     }
 
     setSiteGeometry(nodes, edges) {
         this.nodes = Array.isArray(nodes) ? nodes : [];
         this.edges = Array.isArray(edges) ? edges : [];
+        if (this.nodes.length > 0) {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            for (const n of this.nodes) {
+                if (n.x < minX) minX = n.x;
+                if (n.x > maxX) maxX = n.x;
+                if (n.y < minY) minY = n.y;
+                if (n.y > maxY) maxY = n.y;
+            }
+            const padX = Math.max(40, (maxX - minX) * 0.14);
+            const padY = Math.max(40, (maxY - minY) * 0.16);
+            this.bounds = { minX: minX - padX, maxX: maxX + padX, minY: minY - padY, maxY: maxY + padY };
+        }
         this.render();
     }
 
@@ -30,10 +43,10 @@ class ShadeMapRenderer {
             const dateStr = telemetry.date || "2027-01-11";
             const deltaM = telemetry.route_distance_delta_meters ?? 0;
             this.badge.innerHTML =
-                `<span style="color:#ff5252;">● Sun</span> vs ` +
-                `<span style="color:#00e676;">● Shaded</span> ` +
-                `| <strong>Est. Heat Saved (model estimate): ${saved}%</strong> ` +
-                `(${deltaM >= 0 ? "+" : ""}${deltaM}m, NOAA ${dateStr} Elev ${sunDeg}° Az ${azDeg}°)`;
+                `<span style="color:#ff5252;">● Shortest</span> vs ` +
+                `<span style="color:#00e676;">● Assumed-Shade</span> ` +
+                `| <strong>Illustrative Score: ${saved}%</strong> ` +
+                `(${deltaM >= 0 ? "+" : ""}${deltaM}m OSM walk, NOAA ${dateStr} Elev ${sunDeg}° Az ${azDeg}°) — assumed weights`;
         }
         this.render();
     }
@@ -48,9 +61,11 @@ class ShadeMapRenderer {
     }
 
     _project(x, y) {
-        // World bounds: x in [-55, 90], y in [-15, 155] -> SVG viewBox 0..320 x 0..240
-        const px = 42 + ((x + 55) / 145) * 236;
-        const py = 212 - ((y + 15) / 170) * 184;
+        const b = this.bounds;
+        const spanX = Math.max(1, b.maxX - b.minX);
+        const spanY = Math.max(1, b.maxY - b.minY);
+        const px = 28 + ((x - b.minX) / spanX) * 264;
+        const py = 216 - ((y - b.minY) / spanY) * 188;
         return { px, py };
     }
 

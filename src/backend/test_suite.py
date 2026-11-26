@@ -30,6 +30,8 @@ def run_tests():
     assert client.get("/health").status_code == 200
     ov = client.get("/api/site/overview")
     assert ov.status_code == 200 and "Mahabalipuram" in ov.json()["site_name"]
+    assert all("OpenStreetMap" in (n.get("coordinate_source") or "") for n in ov.json()["nodes"])
+    assert all("OpenStreetMap" in (e.get("distance_source") or "") for e in ov.json()["edges"])
     for img_name in [
         "01_shore_temple_vimana.jpg",
         "02_pancha_rathas.jpg",
@@ -89,13 +91,14 @@ def run_tests():
     assert tel["found"] is True
     assert tel["date"] == "2027-01-11"
     assert tel["solar_model"] == "NOAA General Solar Position Equations"
-    assert "model estimate" in tel["heat_estimate_note"]
+    assert "assumed/illustrative" in tel["heat_estimate_note"].lower()
+    assert "not measured sun exposure" in tel["heat_estimate_note"].lower()
     assert tel["heat_exposure_saved_pct"] > 0.0
     r_rest = client.get("/api/routing/take-a-rest?current_node_id=1&hour=12.0&date=2027-01-11")
     assert r_rest.status_code == 200 and r_rest.json()["found"] is True
     rest_dest = r_rest.json()["path_nodes"][-1]["name"]
     assert "Varaha" in rest_dest or "Mahishasuramardini" in rest_dest
-    print(f"   -> OK (2027-01-11 12:00 IST | Elev: {tel['solar_elevation_deg']} deg | Heat Saved [model estimate]: {tel['heat_exposure_saved_pct']}%, Rest: {rest_dest})")
+    print(f"   -> OK (2027-01-11 12:00 IST | Elev: {tel['solar_elevation_deg']} deg | Illustrative Shade Score: {tel['heat_exposure_saved_pct']}%, Rest: {rest_dest})")
 
     print("6b. Verifying NOAA Solar Position Equations vs Meeus Reference (2027-01-11 @ 09:00, 12:00, 16:00 IST):")
     # Hand-verified Meeus Julian Day reference values for Mahabalipuram (12.6165 N, 80.19 E, IST UTC+5:30) on 2027-01-11:

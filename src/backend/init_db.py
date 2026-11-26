@@ -17,10 +17,16 @@ def ensure_schema(force_reset: bool = False):
     inspector = inspect(engine)
     existing = inspector.get_table_names()
     needs_rebuild = force_reset
-    for tbl in ("poi_nodes", "blueprint_stops", "relic_artifacts", "scavenger_quests"):
+    for tbl, required_cols in (
+        ("poi_nodes", {"source", "coordinate_source"}),
+        ("path_edges", {"distance_source"}),
+        ("blueprint_stops", {"source"}),
+        ("relic_artifacts", {"source"}),
+        ("scavenger_quests", {"source"}),
+    ):
         if tbl in existing and not needs_rebuild:
             cols = {c["name"] for c in inspector.get_columns(tbl)}
-            if "source" not in cols:
+            if not required_cols.issubset(cols):
                 needs_rebuild = True
     if "tour_sessions" in existing and not needs_rebuild:
         cols = {c["name"] for c in inspector.get_columns("tour_sessions")}
@@ -45,7 +51,9 @@ def seed_database(force_reset: bool = False):
     db.query(POINode).delete()
     db.commit()
 
-    # 7 Verified Mahabalipuram Monuments (every fact & date sourced directly from Wikipedia / UNESCO)
+    # 7 Mahabalipuram stops with OpenStreetMap (ODbL) coordinates and Wiki/UNESCO historical sources.
+    # Local (x, y) offsets are metric East/North displacements relative to Stop 1 (12.6165181 N, 80.1982844 E).
+    OSM_DIST_SRC = "OpenStreetMap footpath/street graph Dijkstra (ODbL)"
     nodes_data = [
         POINode(
             id=1, slug="shore_temple_entry", name="Shore Temple Coastal Entry",
@@ -53,7 +61,8 @@ def seed_database(force_reset: bool = False):
             historical_era="7th-8th century CE (Pallava Dynasty)",
             description="Coastal approach to the Group of Monuments at Mahabalipuram on the Bay of Bengal, about 60 km south of Chennai.",
             source=SRC_GROUP,
-            x=0.0, y=0.0, z=0.0, latitude=12.6165, longitude=80.1993,
+            x=0.0, y=0.0, z=0.0, latitude=12.6165181, longitude=80.1982844,
+            coordinate_source="OpenStreetMap node/1138027422 (barrier=gate, ODbL)",
             has_benches=True, has_water=True, has_tree_shade=False, average_ambient_temp_c=32.5,
             model_asset_url=None
         ),
@@ -63,7 +72,8 @@ def seed_database(force_reset: bool = False):
             historical_era="c. 725 AD (Narasimhavarman II)",
             description="Structural granite temple complex overlooking the Bay of Bengal, one of Southern India's oldest structural stone temples.",
             source=SRC_SHORE,
-            x=25.0, y=40.0, z=0.0, latitude=12.6168, longitude=80.1995,
+            x=115.8, y=-7.2, z=0.0, latitude=12.6164535, longitude=80.1993500,
+            coordinate_source="OpenStreetMap way/370135158 (Mamallapuram Shore Temple, ODbL)",
             has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
             # Illustrative placeholder only assigned here; never reused on other classes
             model_asset_url="/app/assets/models/Grand_Solstice_Sun_Temple.glb"
@@ -74,7 +84,8 @@ def seed_database(force_reset: bool = False):
             historical_era="7th-8th century CE (Pallava Dynasty)",
             description="Five monolithic rock-cut chariot-shaped monuments carved over single north-south sloping granite stones, named after the Pandavas and Draupadi.",
             source=SRC_RATHAS,
-            x=75.0, y=85.0, z=2.0, latitude=12.6090, longitude=80.1895,
+            x=-932.4, y=-829.7, z=2.0, latitude=12.6090647, longitude=80.1897016,
+            coordinate_source="OpenStreetMap way/103082949 (Pancha Rathas, ODbL)",
             has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=34.0,
             model_asset_url=None
         ),
@@ -84,7 +95,8 @@ def seed_database(force_reset: bool = False):
             historical_era="7th-8th century CE (Pallava Dynasty)",
             description="Open-air bas-relief measuring 96 by 43 feet (29 m x 13 m) carved across two monolithic boulders depicting the descent of the Ganges led by Bhagiratha.",
             source=SRC_ARJUNA,
-            x=30.0, y=110.0, z=2.0, latitude=12.6177, longitude=80.1928,
+            x=-607.0, y=154.8, z=2.0, latitude=12.6179087, longitude=80.1926969,
+            coordinate_source="OpenStreetMap node/353978523 (Arjuna's Penance, ODbL)",
             has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
             model_asset_url=None
         ),
@@ -94,7 +106,8 @@ def seed_database(force_reset: bool = False):
             historical_era="Protected ASI Monument (Mamallapuram)",
             description="Gigantic granite erratic boulder resting on a short rocky incline near the cave monuments, listed as a protected monument by the ASI.",
             source=SRC_BUTTERBALL,
-            x=-20.0, y=120.0, z=4.0, latitude=12.6191, longitude=80.1924,
+            x=-638.9, y=286.2, z=4.0, latitude=12.6190890, longitude=80.1924032,
+            coordinate_source="OpenStreetMap way/753671961 (Krishna's Butterball, ODbL)",
             has_benches=True, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
             model_asset_url=None
         ),
@@ -104,7 +117,8 @@ def seed_database(force_reset: bool = False):
             historical_era="Late 7th century CE (Pallava Rock-Cut Cave)",
             description="Rock-cut cave temple providing indoor stone shade, noted for the carved panel of Vishnu as Varaha lifting Bhudevi from the sea.",
             source=SRC_VARAHA,
-            x=-40.0, y=65.0, z=3.0, latitude=12.6184, longitude=80.1920,
+            x=-658.4, y=174.5, z=3.0, latitude=12.6180857, longitude=80.1922234,
+            coordinate_source="OpenStreetMap node/353978532 (Varaha Mandapam / Cave, ODbL)",
             has_benches=True, has_water=True, has_tree_shade=True, average_ambient_temp_c=28.0,
             model_asset_url=None
         ),
@@ -114,7 +128,8 @@ def seed_database(force_reset: bool = False):
             historical_era="Late 7th century CE (Pallava Cave Temple)",
             description="Shaded rock-cut cave temple located near the hill lighthouse with three sculpted panels: Durga slaying Mahishasura, reclining Vishnu, and Shiva.",
             source=SRC_MAHISHASURA,
-            x=60.0, y=140.0, z=6.0, latitude=12.6163, longitude=80.1917,
+            x=-732.8, y=-143.8, z=6.0, latitude=12.6152265, longitude=80.1915388,
+            coordinate_source="OpenStreetMap node/353978541 (Mahishamadhini Cave, ODbL)",
             has_benches=True, has_water=True, has_tree_shade=True, average_ambient_temp_c=28.5,
             model_asset_url=None
         )
@@ -134,8 +149,8 @@ def seed_database(force_reset: bool = False):
                 "The Group of Monuments at Mahabalipuram was built during the 7th and 8th centuries CE by the Pallava dynasty on the Coromandel Coast, about 60 kilometres south of Chennai, and was inscribed as a UNESCO World Heritage Site in 1984."
             ),
             script_details="The heritage group includes rock-cut rathas, cave mandapas, open-air bas-reliefs, and structural stone-cut temples managed after 1960 under the Archaeological Survey of India.",
-            next_step_guidance="Walk 47 meters north along the coastal stone walkway to inspect the structural Shore Temple shrines.",
-            distance_to_next=47.0, walking_time_mins=1.0, shade_rating="COASTAL PATH",
+            next_step_guidance="Walk ~255 m along the Shore Temple garden pathway to inspect the structural Shore Temple shrines.",
+            distance_to_next=255.0, walking_time_mins=3.6, shade_rating="ASSUMED COASTAL PATH",
             target_relic_code="shore_temple_vimana", badge_reward="Mahabalipuram Pilgrim Seal", xp_reward=50,
             riddle_question="In which year was the Group of Monuments at Mahabalipuram classified as a UNESCO World Heritage Site?",
             riddle_options=["1984", "1956", "2001"],
@@ -152,8 +167,8 @@ def seed_database(force_reset: bool = False):
                 "Point at Card 1 and tap SCAN RELIC to view the illustrative 3D model and sourced architecture notes."
             ),
             script_details="Unlike rock-cut caves cut into living hill rock, the Shore Temple is a structural temple built from blocks of granite overlooking the Bay of Bengal.",
-            next_step_guidance="Follow the shaded route 67 meters toward the Pancha Rathas monolithic rock-cut complex.",
-            distance_to_next=67.0, walking_time_mins=1.5, shade_rating="OPEN COASTAL SUN",
+            next_step_guidance="Walk ~1831 m southwest via town streets to reach the Pancha Rathas monolithic rock-cut complex.",
+            distance_to_next=1831.2, walking_time_mins=26.2, shade_rating="ASSUMED EXPOSED ROUTE",
             target_relic_code="shore_temple_vimana", badge_reward="Structural Granite Crest", xp_reward=75,
             riddle_question="Which Pallava ruler reigned during the creation of the structural Shore Temple (c. 725 AD)?",
             riddle_options=["Narasimhavarman II", "Ashoka Maurya", "Krishnadevaraya"],
@@ -170,8 +185,8 @@ def seed_database(force_reset: bool = False):
                 "Scan Card 2 (pancha_rathas) to unlock your verified photo card and historical facts."
             ),
             script_details="Historians note these monolithic structures were never consecrated because construction stopped; scholars associate the site with Narasimhavarman I (630-668 CE) or Narasimhavarman II (c. 690-725 CE).",
-            next_step_guidance="Continue 51 meters toward the open-air bas-relief of Arjuna's Penance (Descent of the Ganges).",
-            distance_to_next=51.0, walking_time_mins=1.3, shade_rating="PARTIAL SHADE",
+            next_step_guidance="Walk ~1125 m north along Five Rathas Road and West Raja Street to Arjuna's Penance.",
+            distance_to_next=1124.8, walking_time_mins=16.1, shade_rating="ASSUMED PARTIAL SHADE",
             target_relic_code="pancha_rathas", badge_reward="Ratha Monolith Crest", xp_reward=100,
             riddle_question="Why were the five monolithic structures at Pancha Rathas never consecrated as temples?",
             riddle_options=["They were never completed", "They sank underwater", "They were made of wood"],
@@ -187,8 +202,8 @@ def seed_database(force_reset: bool = False):
                 "Behold the giant open-air rock relief known locally as Arjuna's Penance, {name}! Measuring 96 by 43 feet (29 m by 13 m) across two monolithic rock boulders, it depicts the legend of the river Ganges descending from heaven led by Bhagiratha."
             ),
             script_details="The sculptural panel pairs stories from the Mahabharata and the Descent of the Ganges across an unbroken granite cliff canvas.",
-            next_step_guidance="Proceed 51 meters uphill along the shaded path toward Krishna's Butterball.",
-            distance_to_next=51.0, walking_time_mins=1.2, shade_rating="LIGHT TREE SHADE",
+            next_step_guidance="Walk ~239 m north up the hillock path toward Krishna's Butterball.",
+            distance_to_next=238.8, walking_time_mins=3.4, shade_rating="ASSUMED LIGHT CANOPY",
             target_relic_code="arjunas_penance", badge_reward="Ganges Relief Observer", xp_reward=100,
             riddle_question="Approximately how wide and tall is the Descent of the Ganges (Arjuna's Penance) open-air rock relief?",
             riddle_options=["96 by 43 feet (29 m x 13 m)", "15 by 8 feet (4.5 m x 2.4 m)", "400 by 200 feet (120 m x 60 m)"],
@@ -204,8 +219,8 @@ def seed_database(force_reset: bool = False):
                 "Here stands Krishna's Butterball, also called Vaan Irai Kal, {name}. It is a gigantic granite boulder resting on a short rocky incline on the Mahabalipuram hillock."
             ),
             script_details="Surrounding the hillock's Pallava cave shrines, the balanced boulder is listed by the Archaeological Survey of India as a protected national monument.",
-            next_step_guidance="Descend 58 meters beneath tree cover toward Varaha Cave Temple for shaded stone rest.",
-            distance_to_next=58.0, walking_time_mins=1.4, shade_rating="EXPOSED HILLTOP",
+            next_step_guidance="Walk ~167 m southwest across the hillock footpaths to Varaha Cave Temple.",
+            distance_to_next=167.3, walking_time_mins=2.4, shade_rating="ASSUMED EXPOSED HILLTOP",
             target_relic_code="krishnas_butter_ball", badge_reward="Vaan Irai Kal Explorer", xp_reward=80,
             riddle_question="By what Tamil name is Krishna's Butterball also locally known?",
             riddle_options=["Vaan Irai Kal", "Pancha Ratha", "Yampuri"],
@@ -221,8 +236,8 @@ def seed_database(force_reset: bool = False):
                 "Step into the cool carved shade of Varaha Cave Temple, {name}. Dating from the late 7th century, this rock-cut cave mandapa highlights Vishnu in the boar incarnation of Varaha lifting Bhudevi, the earth goddess, from the sea."
             ),
             script_details="Located in the hill area north of the Pancha Rathas and Shore Temple, the mandapa showcases classic late-7th-century Pallava rock-cut cave architecture.",
-            next_step_guidance="Follow the shaded hill path toward Mahishasuramardini Mandapa near the lighthouse.",
-            distance_to_next=82.0, walking_time_mins=1.8, shade_rating="HIGH CAVE SHADE",
+            next_step_guidance="Walk ~511 m south along the ridge footpaths toward Mahishasuramardini Mandapa near the lighthouse.",
+            distance_to_next=511.2, walking_time_mins=7.3, shade_rating="ASSUMED CAVE SHELTER",
             target_relic_code="mahishasuramardini_cave", badge_reward="Varaha Cave Scholar", xp_reward=90,
             riddle_question="Which prominent carved scene appears inside Varaha Cave Temple?",
             riddle_options=["Vishnu as Varaha lifting Bhudevi from the sea", "Chariot Wheel of Konark", "Sanchi Torana Gateway"],
@@ -255,22 +270,23 @@ def seed_database(force_reset: bool = False):
         db.add(s)
     db.commit()
 
-    # Preserves distinct sun-exposed direct routes vs shaded hillside/cave-shelter perimeter routes
+    # Real walking network distances computed on OpenStreetMap ODbL footways & streets (mahabalipuram bbox),
+    # paired with ASSUMED/ILLUSTRATIVE base_shade_factor & path_type weights (not empirically measured).
     edges_data = [
-        PathEdge(source_id=1, target_id=2, distance_meters=47.0, base_shade_factor=0.65, path_type="coastal_walk"),
-        PathEdge(source_id=2, target_id=3, distance_meters=67.0, base_shade_factor=0.72, path_type="tree_avenue"),
-        PathEdge(source_id=3, target_id=4, distance_meters=51.0, base_shade_factor=0.80, path_type="tree_avenue"),
-        PathEdge(source_id=4, target_id=5, distance_meters=51.0, base_shade_factor=0.78, path_type="tree_avenue"),
-        PathEdge(source_id=5, target_id=6, distance_meters=58.0, base_shade_factor=0.90, path_type="cave_approach"),
-        PathEdge(source_id=5, target_id=7, distance_meters=82.0, base_shade_factor=0.82, path_type="tree_avenue"),
-        PathEdge(source_id=1, target_id=6, distance_meters=76.0, base_shade_factor=0.94, path_type="tree_avenue"),
-        PathEdge(source_id=2, target_id=4, distance_meters=70.0, base_shade_factor=0.75, path_type="tree_avenue"),
-        PathEdge(source_id=6, target_id=7, distance_meters=125.0, base_shade_factor=0.88, path_type="cave_shelter"),
-        # Direct unshaded open-stone diagonals
-        PathEdge(source_id=1, target_id=4, distance_meters=114.0, base_shade_factor=0.10, path_type="open_stone"),
-        PathEdge(source_id=4, target_id=7, distance_meters=42.0, base_shade_factor=0.12, path_type="open_stone"),
-        PathEdge(source_id=1, target_id=3, distance_meters=113.0, base_shade_factor=0.12, path_type="open_stone"),
-        PathEdge(source_id=3, target_id=7, distance_meters=57.0, base_shade_factor=0.15, path_type="open_stone"),
+        PathEdge(source_id=1, target_id=2, distance_meters=255.0, distance_source=OSM_DIST_SRC, base_shade_factor=0.65, path_type="coastal_walk"),
+        PathEdge(source_id=2, target_id=3, distance_meters=1831.2, distance_source=OSM_DIST_SRC, base_shade_factor=0.72, path_type="tree_avenue"),
+        PathEdge(source_id=3, target_id=4, distance_meters=1124.8, distance_source=OSM_DIST_SRC, base_shade_factor=0.80, path_type="tree_avenue"),
+        PathEdge(source_id=4, target_id=5, distance_meters=238.8, distance_source=OSM_DIST_SRC, base_shade_factor=0.78, path_type="tree_avenue"),
+        PathEdge(source_id=5, target_id=6, distance_meters=167.3, distance_source=OSM_DIST_SRC, base_shade_factor=0.90, path_type="cave_approach"),
+        PathEdge(source_id=5, target_id=7, distance_meters=652.3, distance_source=OSM_DIST_SRC, base_shade_factor=0.82, path_type="tree_avenue"),
+        PathEdge(source_id=1, target_id=6, distance_meters=858.5, distance_source=OSM_DIST_SRC, base_shade_factor=0.94, path_type="tree_avenue"),
+        PathEdge(source_id=2, target_id=4, distance_meters=992.5, distance_source=OSM_DIST_SRC, base_shade_factor=0.75, path_type="tree_avenue"),
+        PathEdge(source_id=6, target_id=7, distance_meters=511.2, distance_source=OSM_DIST_SRC, base_shade_factor=0.88, path_type="cave_shelter"),
+        # Direct OSM street diagonals (assumed unshaded weights)
+        PathEdge(source_id=1, target_id=4, distance_meters=737.5, distance_source=OSM_DIST_SRC, base_shade_factor=0.10, path_type="open_stone"),
+        PathEdge(source_id=4, target_id=7, distance_meters=492.1, distance_source=OSM_DIST_SRC, base_shade_factor=0.12, path_type="open_stone"),
+        PathEdge(source_id=1, target_id=3, distance_meters=1576.1, distance_source=OSM_DIST_SRC, base_shade_factor=0.12, path_type="open_stone"),
+        PathEdge(source_id=3, target_id=7, distance_meters=789.9, distance_source=OSM_DIST_SRC, base_shade_factor=0.15, path_type="open_stone"),
     ]
     for e in edges_data:
         db.add(e)
