@@ -9,9 +9,9 @@
 
 ## 1. Current Implementation Status (Honest Audit)
 1. **Mobile WebXR Frontend (`src/frontend_webxr/`):** Implemented and served over local HTTP (`:8000`) and self-signed LAN HTTPS (`:8443`). Camera-first HUD with 7 sourced Mahabalipuram tour stops, interactive NOAA ShadeMap (`shadeMap.js`), QR ticketing (`/ticket`, `/qr`), binaural WebAudio panner (`spatialAudio.js`), stop riddles, snapshot capture, and multi-page PDF Travel Journal export (`fpdf2`).
-2. **Computer Vision Classifier (`visionEngine.js` + `src/backend/train_classifier.py`):** Training pipeline (`train_classifier.py`) and card frame extractor (`tools/extract_frames.py`) are implemented, **but the classifier is not trained yet** (`data/cards/` video sessions are pending user recording and `model.json` does not exist). Tapping `SCAN RELIC` displays `"Vision model not installed"` and never guesses.
-3. **3D Assets (`src/frontend_webxr/assets/models/`):** Bundled `.glb` meshes are procedural placeholders from `generate_glb_exhibits.py`. `Grand_Solstice_Sun_Temple.glb` is hidden in WebXR UI and Demo Mode so all 5 card classes show their Wikimedia Commons photograph and sourced facts panel instead.
-4. **Geofence Radii & Pacing:** Per-stop DB `arrival_radius_m` (`S1=20, S2=45, S3=75, S4=25, S5=25, S6=25, S7=30`, all **UNVERIFIED until field-tested**; `S4`/`S6` set to `25 m` so their `55.02 m` separation stays non-overlapping) read dynamically by `locationTracker.js`, plus manual **`"I'm here"`** check-in buttons (`POST /api/session/checkin`). The full one-way trail across all 7 stops measures **`4128.3 m` (`4.13 km`, `~59.0 min` walking at `70.0 m/min`)**.
+2. **Computer Vision Classifier (`visionEngine.js` + `src/backend/train_classifier.py`):** Training pipeline (`train_classifier.py`, with post-export TF.js accuracy parity check failing if gap exceeds `3.0` percentage points) and card frame extractor (`tools/extract_frames.py`) are implemented per [`docs/training_guide.md`](training_guide.md), **but the classifier is not trained yet** (`data/cards/` video sessions are pending user recording and `model.json` does not exist). Tapping `SCAN RELIC` displays `"Vision model not installed"` and never guesses.
+3. **3D Assets (`src/frontend_webxr/assets/models/`):** Bundled `.glb` meshes are procedural placeholders from `generate_glb_exhibits.py`. `Grand_Solstice_Sun_Temple.glb` is hidden in WebXR UI and Demo Mode so all 5 card classes show their Wikimedia Commons photograph and sourced facts panel by default; only genuine `<class_id>.glb` models matching [`docs/3d_model_spec.md`](3d_model_spec.md) load dynamically (`"Model by Team Lunar Aurora - stylised"` / `"Not a survey-accurate reconstruction."`).
+4. **Geofence Radii & Pacing:** Per-stop DB `arrival_radius_m` (`S1=20, S2=45, S3=75, S4=25, S5=25, S6=25, S7=30`, all **UNVERIFIED until field-tested**; `S4`/`S6` set to `25 m` so their `55.02 m` separation stays non-overlapping) read dynamically by `locationTracker.js`, plus manual **`"I'm here"`** check-in buttons (`POST /api/session/checkin`). The full one-way trail across all 7 stops measures **`4128.3 m` (`4.13 km`, `~59.0 min` walking at an assumed `70.0 m/min` walking speed)**.
 5. **Unity 6 Kiosk (`src/kiosk_unity/`):** Compiles standalone Windows x64 (`LunarAurora_Kiosk.exe`) defaulting to `3840x2160` fullscreen with `-windowed` CLI switch for development, **running strictly in `No-SRD simulation mode`**. Sony `SRDisplayUnityPlugin` is **not** installed and `SRDISPLAY_SDK_PRESENT` is **not** defined; secondary controls render on **`Operator HUD (second display)`**. See [sony_srd_integration_todo.md](sony_srd_integration_todo.md) and [known_limitations.md](known_limitations.md).
 
 ---
@@ -71,20 +71,20 @@ Using these assumed weights over the OSM distance graph at `2027-01-11 12:00 IST
 
 ---
 
-## 4. Measured Backend KPIs (`benchmark_results_20261126_154923.json`, 20 Iterations)
+## 4. Measured Backend KPIs (`benchmark_results_20261126_172408.json`, 20 Iterations)
 
 | Benchmark | Mean Latency | P95 Latency | Status |
 | :--- | :---: | :---: | :--- |
-| Dijkstra shaded-route compute | `0.37 ms` | `0.54 ms` | MEASURED |
+| Dijkstra shaded-route compute | `0.33 ms` | `0.41 ms` | MEASURED |
 | NOAA solar calculation (`2027-01-11 12:00 IST`) | `0.01 ms` | `0.01 ms` | MEASURED |
-| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `3.43 ms` | `4.01 ms` | MEASURED |
+| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `3.30 ms` | `3.98 ms` | MEASURED |
 | Online AI latency (`Groq + Edge-TTS`) | — | — | `NOT MEASURED - no API key` |
-| Vision metadata lookup (`POST /api/vision/identify`) | `6.66 ms` | `7.18 ms` | MEASURED |
-| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `6.49 ms` | `15.61 ms` | MEASURED |
-| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `14.27 ms` | `15.43 ms` | MEASURED |
-| API test suite pass rate (`test_suite.py`) | `9/9 (100.0%)` in `2642.38 ms` | — | MEASURED |
+| Vision metadata lookup (`POST /api/vision/identify`) | `6.81 ms` | `7.56 ms` | MEASURED |
+| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `6.06 ms` | `19.06 ms` | MEASURED |
+| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `14.46 ms` | `14.02 ms` | MEASURED |
+| API test suite pass rate (`test_suite.py`) | `9/9 (100.0%)` in `1727.07 ms` | — | MEASURED |
 
-Hardware/device fields (`mobile_fps`, `qr_to_ar_launch_ms`, `vision_on_device_ms`, `unity_frame_time_ms`) remain **`MEASURE ON DEVICE`**.
+Hardware/device fields (`mobile_fps`, `qr_to_ar_launch_ms`, `vision_on_device_ms`, `unity_frame_time_ms`) remain **`MEASURE ON DEVICE`** (tracked in [`docs/device_test_checklist.md`](device_test_checklist.md)).
 
 ---
 

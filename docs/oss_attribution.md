@@ -8,6 +8,8 @@ Team **Lunar Aurora** (XR Innovation Challenge 2026) documents every third-party
 | :--- | :---: | :--- | :--- | :--- |
 | **Three.js (`three.min.js`)** | `r128` (`0.128.0`) | https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js | MIT License | unmodified |
 | **Three.js GLTFLoader (`GLTFLoader.js`)** | `r128` (`0.128.0`) | https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js | MIT License | unmodified |
+| **Three.js DRACOLoader (`DRACOLoader.js`)** | `r128` (`0.128.0`) | https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js | MIT License | unmodified |
+| **Google Draco glTF Decoder (`draco_decoder.js`, `draco_decoder.wasm`, `draco_wasm_wrapper.js`)** | Three `r128` bundle | https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/ | Apache-2.0 License (`https://github.com/google/draco`) | unmodified |
 | **TensorFlow.js (`tf.min.js`)** | `4.17.0` | https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js | Apache-2.0 License | unmodified |
 | **Font Awesome Free (CSS + 8 Webfont files)** | `6.5.1` | https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css | Icons: CC BY 4.0 / Fonts: SIL OFL 1.1 / Code: MIT | unmodified |
 | **QRCode.js (`qrcode.min.js`)** | `1.0.0` | https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js | MIT License | unmodified |
@@ -41,7 +43,7 @@ Historical descriptions, monument dates, dimensions, riddles, and audio narratio
 ## 4. 3D Models (`src/frontend_webxr/assets/models/` & `src/kiosk_unity/`)
 
 - Zero `CC BY-NC` assets are included anywhere in this repository.
-- Three procedural `.glb` files (`Grand_Solstice_Sun_Temple.glb`, `Celestial_Airavata_Sculpture.glb`, `Solstitial_Lotus_Gnomon.glb`) remain stored in the repository (`src/kiosk_unity/generate_glb_exhibits.py`, MIT), **with `Grand_Solstice_Sun_Temple.glb` hidden from the WebXR UI and Demo Mode** so all 5 card classes display their verified Wikimedia photograph and facts panel until team-made meshes are added per `src/frontend_webxr/assets/models/README_MODELS_TODO.md`.
+- Three procedural `.glb` files (`Grand_Solstice_Sun_Temple.glb`, `Celestial_Airavata_Sculpture.glb`, `Solstitial_Lotus_Gnomon.glb`) remain stored in the repository (`src/kiosk_unity/generate_glb_exhibits.py`, MIT), **with `Grand_Solstice_Sun_Temple.glb` hidden from the WebXR UI and Demo Mode**. WebXR only renders a 3D mesh when a matching `<class_id>.glb` (`< 15,000` tris, `< 1.5 MB` Draco-compressed per [`docs/3d_model_spec.md`](3d_model_spec.md)) is present on disk, labeled `"Model by Team Lunar Aurora - stylised"` / `"Not a survey-accurate reconstruction."`; otherwise cards display their verified Wikimedia photograph and Wikipedia/UNESCO facts panel.
 
 ## 5. Backend & Training Dependencies (`requirements.txt` & `requirements-train.txt`)
 

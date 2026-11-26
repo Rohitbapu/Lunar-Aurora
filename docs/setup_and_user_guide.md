@@ -4,7 +4,7 @@
 - **Python 3.11+** with dependencies in `src/backend/requirements.txt`.
 - **Training Dependencies (only when ready to train the card classifier):** `src/backend/requirements-train.txt`.
 - **Optional `GROQ_API_KEY` environment variable:** Without an API key, live Groq AI benchmark is skipped (`NOT MEASURED - no API key`), while guided sessions remain operational offline via the `2.5s` failsafe, `OFFLINE_QA_BANK`, and **`54`** pre-cached EN/TA/HI MP3s in `src/backend/static/audio_cache/`.
-- **Unity `6000.6.9f1` (optional):** Only required to recompile `src/kiosk_unity/` from source. Compiled Windows builds are distributed via [GitHub Releases](https://github.com/Rohitbapu/Lunar-Aurora/releases) (`Builds/` is gitignored).
+- **Unity `6000.6.9f1` (optional):** Only required to recompile `src/kiosk_unity/` from source. Compiled Windows builds reside in gitignored `src/kiosk_unity/Builds/Windows_SonySRDisplay/` (for attachment to GitHub Releases upon publication).
 
 ---
 
@@ -37,15 +37,15 @@ python start_servers.py
 1. Open `http://localhost:8000/ticket` (or scan `/qr` over LAN Wi-Fi).
 2. Issue a ticket in **English (`EN`)**, **Tamil (`TA`)**, or **Hindi (`HI`)** and open `https://<LAN-IP>:8443/app/...` on mobile Chrome (accept the local self-signed TLS prompt for camera/sensor permissions).
 3. **Indoors at a Jury Table? Open Demo Mode (`?demo=1` or triple-tap the top GPS pill):**
-   - **Stops S1–S7 Teleport:** Jump across all 7 OpenStreetMap-referenced Mahabalipuram monuments.
+   - **Stops S1–S7 Teleport:** Jump across all 7 OpenStreetMap-referenced Mahabalipuram monuments (`4.13 km` one-way trail, `~59 min` walking at an assumed `70.0 m/min` speed).
    - **NOAA Date & Time Slider:** Adjust date (defaults to Finale **`2027-01-11`**) and IST hour (`06:00–18:00`) in the demo drawer or **Mahabalipuram ShadeMap**. Walking distances come from OpenStreetMap; relative shade scores are labeled as **assumed/illustrative weights (not measured sun exposure)**.
-   - **Printed Carving Cards:** Print `docs/carving_cards/print_5_carving_cards.html` (double-sided A4 matte). Until `model.json` is trained from user-recorded card videos, `visionEngine.js` reports **`"Vision model not installed"`**.
+   - **Printed Carving Cards & Optional 3D:** Print `docs/carving_cards/print_5_carving_cards.html` (double-sided A4 matte). Until `model.json` is trained from user-recorded card videos, `visionEngine.js` reports **`"Vision model not installed"`**. See [`docs/3d_model_spec.md`](3d_model_spec.md) for optional `<class_id>.glb` models and [`docs/device_test_checklist.md`](device_test_checklist.md) for mobile Android field verification.
 
 ---
 
 ## 4. Running the Unity 6 Kiosk (`No-SRD Simulation Mode`)
 1. Start the FastAPI backend (`python start_servers.py`) so `GET /api/site/telemetry` responds on `http://localhost:8000`.
-2. Download or build `LunarAurora_Kiosk.exe` ([GitHub Releases](https://github.com/Rohitbapu/Lunar-Aurora/releases)).
+2. Build or locate `src/kiosk_unity/Builds/Windows_SonySRDisplay/LunarAurora_Kiosk.exe` ([GitHub Releases](https://github.com/Rohitbapu/Lunar-Aurora/releases)).
 3. **Display Modes:**
    - Default launch opens **`3840x2160` fullscreen** (`FullScreenWindow`) for exhibition kiosks.
    - Pass **`-windowed`** (or `--windowed`) for desktop development & debugging:
@@ -58,8 +58,9 @@ python start_servers.py
 ---
 
 ## 5. Training the 6-Class Carving Classifier (After Video Capture)
+See full instructions, `[-1, 1]` preprocessing parity verification, and quantization accuracy gate in **[docs/training_guide.md](training_guide.md)**:
 1. Print `docs/carving_cards/print_5_carving_cards.html`.
-2. Record short phone videos per card (`<class>__session_XX.mp4`) plus a `background` clip covering blank cardstock, card backs, tables, and room clutter. Do **not** use synthetic training data.
+2. Record short phone videos per card (`<class>__session_XX.mp4`) plus `background` clips covering blank cardstock, card backs, tables, and room clutter. Do **not** use synthetic training data.
 3. Extract frames (`0.25s` interval) & train (`requirements-train.txt`):
    ```powershell
    python tools/extract_frames.py path/to/videos_folder

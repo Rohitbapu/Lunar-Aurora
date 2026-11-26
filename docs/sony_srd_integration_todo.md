@@ -18,7 +18,7 @@ Do **not** claim ELF-SR1 eye tracking or lenticular 3D output works until every 
 3. Confirm eye tracking works inside Sony's **Spatial Reality Display Settings** utility before opening Unity.
 
 ## Step 2: Import the Plugin Into `src/kiosk_unity`
-1. Open `src/kiosk_unity` in Unity `6000.3.11f1` (or open via `src/kiosk_unity/open_in_unity.bat`).
+1. Open `src/kiosk_unity` in Unity **`6000.6.9f1`** (`ProjectSettings/ProjectVersion.txt`; or open via `src/kiosk_unity/open_in_unity.bat`).
 2. Use **`Assets -> Import Package -> Custom Package...`** (or **`Lunar Aurora -> Import Sony SRDisplay Package (.unitypackage)...`**) and select Sony's `.unitypackage`.
 3. Inspect the imported package folder (for example `Assets/SRDisplayUnityPlugin/...`) to record exact Sony C# namespaces, class names, prefab names, and 2D second-display prefab names shipped with your downloaded SDK version.
 
@@ -33,7 +33,7 @@ Because Sony's SDK is proprietary and not bundled in this repository, **do not g
 1. **`src/kiosk_unity/Assets/Scripts/SRDisplayViewerController.cs`**
    - Update `ApplyTrackingMode()` inside `#if SRDISPLAY_SDK_PRESENT` to instantiate/locate Sony's verified SDK rig manager/eye-tracking component, bind `watcherTargetTransform` to Sony's actual viewer/head anchor transform, and disable `fallbackHoloCamera` when Sony stereo rendering is active.
 2. **`src/kiosk_unity/Assets/Editor/BuildScript.cs`**
-   - Update `CreateDefaultKioskScene(string scenePath)` to place Sony's actual camera-box/manager prefab and second-screen prefab (if provided by your SDK version) into `Assets/Scenes/MainKioskScene.unity`, and update `PlayerSettings.defaultScreenWidth = 3840; PlayerSettings.defaultScreenHeight = 2160;` when building for hardware ELF-SR1 4K output.
+   - Update `CreateDefaultKioskScene(string scenePath)` (used only if `Assets/Scenes/MainKioskScene.unity` is missing) to place Sony's actual camera-box/manager prefab and second-screen prefab (if provided by your SDK version), and verify the existing `3840x2160` fullscreen resolution renders onto ELF-SR1 Display 0 cleanly without `-windowed`.
 3. **`src/kiosk_unity/Assets/Scripts/KioskUIManager.cs`**
    - Verify whether Sony's hardware camera/rig handles Display 0 fullscreen lenticular rendering exclusively so `KioskUIManager.OnGUI()` automatically yields Display 0 to the 3D scene while **`Operator HUD (second display)`** (`KioskOperatorDisplayHUD`) continues rendering on Display 1.
 4. **`src/kiosk_unity/Assets/Scripts/KioskAvatarGuide.cs`**

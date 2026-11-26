@@ -12,15 +12,15 @@
 ## What Currently Works in This Repository
 1. **Zero-CDN Mobile WebXR & QR Ticketing (`src/frontend_webxr/` + `src/backend/`):**
    - Counter ticket portal (`/ticket`, `/qr`) generates URL-encoded QR launch links in **English (`EN`)**, **Tamil (`TA`)**, or **Hindi (`HI`)** with self-signed LAN TLS (`generate_ssl_certs.py --ip`) so mobile browsers can access camera and orientation sensors over `:8443`.
-   - Runtime libraries (`three.min.js`, `GLTFLoader.js`, `tf.min.js`, `qrcode.min.js`, Font Awesome `6.5.1`) are vendored locally inside `src/frontend_webxr/vendor/`.
-   - 7 Mahabalipuram stops with OpenStreetMap (ODbL) coordinates (`node/1138027422`, `way/370135158`, `way/103082949`, `node/353978523`, `way/753671961`, `node/353978532`, `node/353978541`), real OpenStreetMap one-way walking distances (`4128.3 m` / `4.13 km` total across 6 legs, `~59 min` walking at `70.0 m/min`), per-stop DB `arrival_radius_m` (`20, 45, 75, 25, 25, 25, 30` — all **UNVERIFIED** until field-tested), manual **`I'M HERE`** check-in buttons for all stops, Wikipedia/UNESCO sources, interactive `+45 XP` riddles, **`54`** pre-cached EN/TA/HI MP3s, `DeviceOrientationEvent` WebAudio panner alignment, watermarked snapshots, and `fpdf2` PDF Travel Journals.
-   - Verified Wikimedia photographs + sourced facts panels render for all 5 monument classes (`Grand_Solstice_Sun_Temple.glb` is hidden in WebXR UI and Demo Mode).
+   - Runtime libraries (`three.min.js`, `GLTFLoader.js`, `DRACOLoader.js` + local WASM Draco decoder, `tf.min.js`, `qrcode.min.js`, Font Awesome `6.5.1`) are vendored locally inside `src/frontend_webxr/vendor/`.
+   - 7 Mahabalipuram stops with OpenStreetMap (ODbL) coordinates (`node/1138027422`, `way/370135158`, `way/103082949`, `node/353978523`, `way/753671961`, `node/353978532`, `node/353978541`), real OpenStreetMap walking distances forming a **`4128.3 m` (`4.13 km`) one-way trail** across 6 legs (`~59 min` walking at an **assumed `70.0 m/min` walking speed**), per-stop DB `arrival_radius_m` (`20, 45, 75, 25, 25, 25, 30` — all **UNVERIFIED** until field-tested), manual **`I'M HERE`** check-in buttons for all stops, Wikipedia/UNESCO sources, interactive `+45 XP` riddles, **`54`** pre-cached EN/TA/HI MP3s, `DeviceOrientationEvent` WebAudio panner alignment, watermarked snapshots, and `fpdf2` PDF Travel Journals.
+   - Verified Wikimedia photographs + sourced facts panels render for monument classes by default (`Grand_Solstice_Sun_Temple.glb` is permanently hidden in WebXR UI and Demo Mode; only an optional team-authored `assets/models/<class_id>.glb` renders in 3D, explicitly labeled `"Model by Team Lunar Aurora - stylised"` and `"Not a survey-accurate reconstruction."`).
 2. **Real NOAA Solar Geometry + Assumed-Shade Dijkstra Graph (`routing_service.py` + `shadeMap.js`):**
    - Computes solar declination, equation of time, hour angle, solar elevation, and solar azimuth for `12.6165° N, 80.19° E` (IST) via the **NOAA General Solar Position Equations**, defaulting to **`2027-01-11`** and exposing `?date=` & `?hour=`.
    - Verified in `test_suite.py` (`09:00`: `30.75°` elev / `125.36°` azim; `12:00`: `55.22°` elev / `173.33°` azim; `16:00`: `25.23°` elev / `238.13°` azim — within `< 0.26°` of independent Meeus reference).
    - **Important Modeling Disclosure:** While graph coordinates & walking distances come from OpenStreetMap, **the route graph shade weights and penalties are ASSUMED / ILLUSTRATIVE** (not physical pyranometer measurements). Using those assumed weights on `2027-01-11 12:00 IST` from Stop 1 -> Stop 7, shortest OSM walking (`[1, 4, 7]`, `1229.6 m`) vs assumed-shade OSM walking (`[1, 6, 7]`, `1369.7 m`) yields an **illustrative relative model score of `81.4%`** (do **not** interpret this as measured sun exposure).
 3. **Unity 6 Desktop Kiosk (`src/kiosk_unity/` — `No-SRD simulation mode`):**
-   - Compiles cleanly to standalone Windows x64 (`LunarAurora_Kiosk.exe`) distributed on **[GitHub Releases](https://github.com/Rohitbapu/Lunar-Aurora/releases)** (`Builds/` is gitignored).
+   - Compiles cleanly to standalone Windows x64 (`src/kiosk_unity/Builds/Windows_SonySRDisplay/LunarAurora_Kiosk.exe`; `Builds/` is gitignored and built locally until attached to [GitHub Releases](https://github.com/Rohitbapu/Lunar-Aurora/releases)).
    - Defaults to **`3840x2160` fullscreen**, with a **`-windowed`** command-line switch (`LunarAurora_Kiosk.exe -windowed`) for desktop development.
    - Displays 3 procedural Mahabalipuram **Illustrative model** placeholders, drives directional sunlight from `/api/site/telemetry?date=...&hour=...`, and mirrors controls onto **`Operator HUD (second display)`**.
 
@@ -49,18 +49,18 @@ All shade weights below in `src/backend/init_db.py` and `src/backend/app/service
 ---
 
 ## Verified Backend Benchmarks (`benchmark_kpis.py` — 20 Iterations)
-Latest timestamped JSON: `src/backend/benchmark_results_20261126_154923.json`.
+Latest timestamped JSON: `src/backend/benchmark_results_20261126_172408.json`.
 
 | Operation | Measured Mean | Measured P95 | Status |
 | :--- | :---: | :---: | :--- |
-| Dijkstra shaded-route compute (DB graph) | `0.37 ms` | `0.54 ms` | MEASURED |
+| Dijkstra shaded-route compute (DB graph) | `0.33 ms` | `0.41 ms` | MEASURED |
 | NOAA solar calculation (`2027-01-11 12:00 IST`) | `0.01 ms` | `0.01 ms` | MEASURED |
-| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `3.43 ms` | `4.01 ms` | MEASURED |
+| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `3.30 ms` | `3.98 ms` | MEASURED |
 | Online AI latency (`Groq + Edge-TTS`) | — | — | `NOT MEASURED - no API key` |
-| Vision metadata lookup (`POST /api/vision/identify`) | `6.66 ms` | `7.18 ms` | MEASURED |
-| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `6.49 ms` | `15.61 ms` | MEASURED |
-| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `14.27 ms` | `15.43 ms` | MEASURED |
-| Backend E2E & NOAA API test suite (`test_suite.py`) | `9/9` (`100.0%`) in `2642.38 ms` | — | MEASURED |
+| Vision metadata lookup (`POST /api/vision/identify`) | `6.81 ms` | `7.56 ms` | MEASURED |
+| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `6.06 ms` | `19.06 ms` | MEASURED |
+| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `14.46 ms` | `14.02 ms` | MEASURED |
+| Backend E2E & NOAA API test suite (`test_suite.py`) | `9/9` (`100.0%`) in `1727.07 ms` | — | MEASURED |
 
 Pending hardware measurements (tagged **`MEASURE ON DEVICE`** in JSON): `mobile_fps`, `qr_to_ar_launch_ms`, `vision_on_device_ms`, and `unity_frame_time_ms`.
 
@@ -69,8 +69,8 @@ Pending hardware measurements (tagged **`MEASURE ON DEVICE`** in JSON): `mobile_
 ## Known Limitations
 See full details in **[docs/known_limitations.md](docs/known_limitations.md)**:
 - **Sony ELF-SR1 Plugin Absent (`No-SRD simulation mode`):** `SRDisplayUnityPlugin` is not installed (`SRDISPLAY_SDK_PRESENT` undefined); eye-tracked lenticular 3D is not active yet ([docs/sony_srd_integration_todo.md](docs/sony_srd_integration_todo.md)).
-- **Vision Classifier Untrained (`Vision model not installed`):** `data/cards/` captures have not been filmed yet, so `model.json` does not exist; `SCAN RELIC` displays `"Vision model not installed"` rather than guessing.
-- **Procedural 3D Placeholders (Hidden in WebXR UI):** `Grand_Solstice_Sun_Temple.glb` is hidden across WebXR UI and Demo Mode; all 5 carving classes display verified Wikimedia photographs and sourced facts panels until team-authored meshes are added. Unity renders 3 procedural placeholders labeled `"Illustrative model"`.
+- **Vision Classifier Untrained (`Vision model not installed`):** `data/cards/` captures have not been filmed yet, so `model.json` does not exist; `SCAN RELIC` displays `"Vision model not installed"` rather than guessing ([docs/training_guide.md](docs/training_guide.md)).
+- **Procedural 3D Placeholders (Hidden in WebXR UI):** `Grand_Solstice_Sun_Temple.glb` is permanently hidden across WebXR UI and Demo Mode; classes display verified Wikimedia photographs and sourced facts panels unless an optional team-authored `assets/models/<class_id>.glb` (`docs/3d_model_spec.md`) is installed (`"Model by Team Lunar Aurora - stylised"` / `"Not a survey-accurate reconstruction."`). Unity renders 3 procedural placeholders labeled `"Illustrative model"`.
 - **Unverified Per-Stop Geofence Radii:** `arrival_radius_m` (`20, 45, 75, 25, 25, 25, 30`) are non-overlapping starting estimates (`UNVERIFIED until field-tested`); manual **`I'M HERE`** buttons exist for all stops.
 - **Assumed Route Shade Weights:** Distances come from OpenStreetMap (ODbL), but edge shade factors and penalties are illustrative placeholders, not measured irradiance/heat.
 - **Unmeasured Groq Benchmark & Hardware KPIs:** Groq AI latency is `NOT MEASURED - no API key`; phone FPS, QR launch time, mobile vision ms, and ELF-SR1 frame time remain `MEASURE ON DEVICE`.
@@ -83,11 +83,14 @@ See full details in **[docs/known_limitations.md](docs/known_limitations.md)**:
 - **[Accelerator & Technical Report (`docs/ax.md`)](docs/ax.md)**
 - **[System Architecture (`docs/architecture.md`)](docs/architecture.md)**
 - **[Open-Source Software, OSM & Media Attribution (`docs/oss_attribution.md`)](docs/oss_attribution.md)** *(OSM coordinates © OpenStreetMap contributors under ODbL 1.0; Wikimedia Commons images retain their licenses in `docs/carving_cards/images/LICENSE-NOTICE.md`)*
+- **[Training Guide (`docs/training_guide.md`)](docs/training_guide.md)** *(Card capture, session splits, `[-1, 1]` parity, TF.js quantization check)*
+- **[3D Model Spec (`docs/3d_model_spec.md`)](docs/3d_model_spec.md)** *(`< 15,000` tris, `< 1.5 MB` Draco `<class_id>.glb`, honest fallback)*
+- **[Android Phone & Field Geofence Test Checklist (`docs/device_test_checklist.md`)](docs/device_test_checklist.md)** *(All field metrics marked `NEEDS DEVICE TEST` until tested)*
+- **[3-Minute Jury Demo Script & 60s Backup Plan (`docs/demo_script.md`)](docs/demo_script.md)**
 - **[Sony SRDisplay Integration TODO (`docs/sony_srd_integration_todo.md`)](docs/sony_srd_integration_todo.md)**
 - **[XR Domain Justification (`docs/xr_domain_justification.md`)](docs/xr_domain_justification.md)**
 - **[Setup & User Guide (`docs/setup_and_user_guide.md`)](docs/setup_and_user_guide.md)**
 - **[Printable 5-Card Mahabalipuram Sheet (`docs/carving_cards/print_5_carving_cards.html`)](docs/carving_cards/print_5_carving_cards.html)**
-- **[Standalone Windows Kiosk EXE (GitHub Releases)](https://github.com/Rohitbapu/Lunar-Aurora/releases)**
 
 ---
 
