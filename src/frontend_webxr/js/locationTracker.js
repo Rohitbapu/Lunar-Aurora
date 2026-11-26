@@ -34,6 +34,7 @@ class LocationTracker {
       { step: 7, name: "Mahishasuramardini Mandapa", x: -732.8, y: -143.8, lat: 12.6152265, lon: 80.1915388, arrivalRadiusM: null }
     ];
     this.radiiLoadedFromApi = false;
+    this.radiiLoadFailed = false;
 
     this.onLocationUpdated = null;
     this.onStopArrived = null;
@@ -58,8 +59,29 @@ class LocationTracker {
         updated++;
       }
     }
-    if (updated > 0) this.radiiLoadedFromApi = true;
+    if (updated > 0) {
+      this.radiiLoadedFromApi = true;
+      this.radiiLoadFailed = false;
+      const warn = document.getElementById('geofence-fallback-banner');
+      if (warn) warn.style.display = 'none';
+    }
     return updated > 0;
+  }
+
+  markRadiiLoadFailed() {
+    this.radiiLoadedFromApi = false;
+    this.radiiLoadFailed = true;
+    if (typeof document !== 'undefined') {
+      const warn = document.getElementById('geofence-fallback-banner');
+      if (warn) {
+        warn.textContent = "Auto-arrival unavailable, use I'M HERE";
+        warn.style.display = 'block';
+      }
+      const gpsLabel = document.getElementById('gps-coords-label');
+      if (gpsLabel && !this.demoModeActive) {
+        gpsLabel.textContent = "Auto-arrival unavailable, use I'M HERE";
+      }
+    }
   }
 
   _haversineMeters(lat1, lon1, lat2, lon2) {

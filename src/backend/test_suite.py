@@ -29,6 +29,7 @@ def run_tests():
     print("1. Testing Root, Health, Overview & /static/cards Images:")
     assert client.get("/").status_code == 200
     assert client.get("/health").status_code == 200
+    assert client.get("/favicon.ico").status_code == 200
     ov = client.get("/api/site/overview")
     assert ov.status_code == 200 and "Mahabalipuram" in ov.json()["site_name"]
     nodes = ov.json()["nodes"]

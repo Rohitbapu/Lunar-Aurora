@@ -364,7 +364,7 @@ function setupUI() {
 function openCurrentReconstruction(title = null, modelUrl = null, latencyMs = null) {
   const stopData = window.tourManager && window.tourManager.currentStopData;
   const resolvedTitle = title || (stopData && stopData.title) || 'Mahabalipuram Monument';
-  const relicCode = (stopData && stopData.target_relic_code) || 'shore_temple_vimana';
+  const relicCode = (stopData && stopData.target_relic_code) || null;
 
   const eraPanel = document.getElementById('era-reconstruction-panel');
   if (eraPanel) eraPanel.style.display = 'none';
@@ -382,8 +382,8 @@ function openCurrentReconstruction(title = null, modelUrl = null, latencyMs = nu
     name: resolvedTitle,
     period: (stopData && stopData.era) || '7th-8th century CE',
     style: (stopData && stopData.subtitle) || 'Mahabalipuram Heritage Monument',
-    story: (stopData && stopData.script_details) || 'Verified Mahabalipuram monument photograph and sourced historical notes.',
-    image_url: cardImageMap[relicCode] || '/static/cards/01_shore_temple_vimana.jpg',
+    story: (stopData && stopData.script_details) || 'Verified Mahabalipuram historical notes.',
+    image_url: relicCode ? (cardImageMap[relicCode] || null) : null,
     source: stopData && stopData.source
   }, latencyMs);
 }
@@ -402,6 +402,7 @@ function showRelicPhotoInfoPanel(art, latencyMs = null) {
       imgEl.src = art.image_url;
       imgEl.style.display = 'block';
     } else {
+      imgEl.removeAttribute('src');
       imgEl.style.display = 'none';
     }
   }

@@ -162,14 +162,51 @@ class TourManager {
         this.siteNodes = ov.nodes || [];
       }
       if (window.locationTracker) {
+        let loaded = false;
         if (this.siteNodes && this.siteNodes.length > 0) {
-          window.locationTracker.loadRadiiFromApi(this.siteNodes);
+          loaded = window.locationTracker.loadRadiiFromApi(this.siteNodes);
         } else if (this.blueprintStops && this.blueprintStops.length > 0) {
-          window.locationTracker.loadRadiiFromApi(this.blueprintStops);
+          loaded = window.locationTracker.loadRadiiFromApi(this.blueprintStops);
+        }
+        if (!loaded) {
+          loaded = await this.retryLoadRadiiFromApi();
+        }
+        if (!loaded) {
+          window.locationTracker.markRadiiLoadFailed();
+          if (typeof showNotification === 'function') {
+            showNotification("Auto-arrival unavailable, use I'M HERE");
+          }
         }
       }
       this.renderManualCheckinButtons();
-    } catch (e) {}
+    } catch (e) {
+      const loaded = await this.retryLoadRadiiFromApi();
+      if (!loaded && window.locationTracker) {
+        window.locationTracker.markRadiiLoadFailed();
+        if (typeof showNotification === 'function') {
+          showNotification("Auto-arrival unavailable, use I'M HERE");
+        }
+      }
+    }
+  }
+
+  async retryLoadRadiiFromApi(maxRetries = 2, delayMs = 350) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await new Promise(r => setTimeout(r, delayMs));
+        const res = await fetch('/api/site/nodes');
+        if (res.ok) {
+          const nodes = await res.json();
+          if (Array.isArray(nodes) && nodes.length > 0) {
+            this.siteNodes = nodes;
+            if (window.locationTracker && window.locationTracker.loadRadiiFromApi(nodes)) {
+              return true;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    return false;
   }
 
   renderManualCheckinButtons() {

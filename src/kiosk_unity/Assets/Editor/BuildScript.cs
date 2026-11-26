@@ -62,9 +62,18 @@ namespace LunarAurora.Editor
             PlayerSettings.companyName = "Lunar Aurora Team";
 
             string scenePath = "Assets/Scenes/MainKioskScene.unity";
-            CreateDefaultKioskScene(scenePath);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.ImportAsset(scenePath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            string fullScenePath = Path.Combine(Application.dataPath, "Scenes", "MainKioskScene.unity");
+            if (!File.Exists(fullScenePath))
+            {
+                CreateDefaultKioskScene(scenePath);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.ImportAsset(scenePath, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            }
+            else
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.OpenScene(scenePath, UnityEditor.SceneManagement.OpenSceneMode.Single);
+                Debug.Log($"[BuildScript] Opened existing scene without regenerating: {scenePath}");
+            }
 
             BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions
             {

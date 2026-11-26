@@ -85,7 +85,8 @@ async def pre_cache_all():
     os.makedirs(precache_dir, exist_ok=True)
 
     removed = remove_obsolete_and_stale_cache(precache_dir)
-    print(f"[PreCache] Removed {len(removed)} old MP3 files (including obsolete chariot/yali/nataraja/lotus clips): {removed}")
+    obsolete_removed = [f for f in removed if any(f.startswith(p) for p in OBSOLETE_PREFIXES)]
+    print(f"[PreCache] Removed {len(removed)} previously cached MP3 files (obsolete matches: {obsolete_removed}): {removed}")
 
     tasks = []
     stops = db.query(BlueprintStop).order_by(BlueprintStop.step_number).all()

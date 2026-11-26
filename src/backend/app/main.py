@@ -2,7 +2,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from app.config import settings
 from app.routers import chat, routing, vision, scavenger, site, ticket, session, tour
 
@@ -31,10 +31,17 @@ app.include_router(ticket.router)
 app.include_router(session.router)
 app.include_router(tour.router)
 
-# Direct route for ticketing counter
+# Direct route for ticketing counter & favicon
 @app.get("/ticket", response_class=HTMLResponse)
 def ticket_page():
     return ticket.ticket_counter_portal()
+
+@app.get("/favicon.ico")
+def get_favicon():
+    ico_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend_webxr", "favicon.ico"))
+    if os.path.exists(ico_path):
+        return FileResponse(ico_path, media_type="image/x-icon")
+    return HTMLResponse(status_code=204)
 
 # Mount static audio & photo caches
 os.makedirs(settings.AUDIO_CACHE_DIR, exist_ok=True)
