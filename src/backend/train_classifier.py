@@ -288,6 +288,10 @@ def build_and_train(data_dir: str, epochs: int, batch_size: int):
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump({"classes": class_names}, f, indent=2)
 
+    exported_acc, acc_gap_pp = verify_exported_tfjs_accuracy(
+        EXPORT_DIR, x_test, y_test, keras_acc=acc, batch_size=batch_size, max_gap_pp=3.0
+    )
+
     # Test 3 held-out images directly against model prediction
     print("\n=== 3 HELD-OUT TEST IMAGE PREDICTIONS ===")
     sample_preds = []
@@ -311,6 +315,8 @@ def build_and_train(data_dir: str, epochs: int, batch_size: int):
         json.dump(
             {
                 "overall_accuracy": round(acc, 4),
+                "exported_tfjs_accuracy": round(exported_acc, 4),
+                "tfjs_accuracy_gap_pp": round(acc_gap_pp, 3),
                 "confidence_threshold": CONFIDENCE_THRESHOLD,
                 "tfjs_bundle_mb": round(total_mb, 3),
                 "train_count": len(train_idx),
@@ -323,6 +329,51 @@ def build_and_train(data_dir: str, epochs: int, batch_size: int):
             indent=2,
         )
     print(f"[Metrics] Saved {cm_path} and {metrics_path}")
+
+
+def verify_exported_tfjs_accuracy(
+    export_dir: str,
+    x_test,
+    y_test,
+    keras_acc: float,
+    batch_size: int,
+    max_gap_pp: float = 3.0,
+) -> Tuple[float, float]:
+    """
+    Reloads the uint8-quantized TF.js Layers model (model.json + .bin shards),
+    evaluates it on the identical held-out test set, and fails loudly if accuracy
+    drifts by more than max_gap_pp percentage points from the pre-export Keras model.
+    """
+    import numpy as np
+    import tensorflowjs as tfjs
+    from sklearn.metrics import accuracy_score
+
+    model_json_path = os.path.join(export_dir, "model.json")
+    if not os.path.exists(model_json_path):
+        raise FileNotFoundError(f"Exported TF.js manifest missing: {model_json_path}")
+
+    try:
+        exported_model = tfjs.converters.load_keras_model(model_json_path)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to reload exported TF.js model from {model_json_path} for parity verification: {exc}"
+        ) from exc
+
+    exported_probs = exported_model.predict(x_test, batch_size=batch_size, verbose=0)
+    exported_pred = np.argmax(exported_probs, axis=1)
+    exported_acc = float(accuracy_score(y_test, exported_pred))
+    gap_pp = abs(keras_acc - exported_acc) * 100.0
+    print(
+        f"[Export Verify] Keras held-out acc: {keras_acc * 100:.2f}% | "
+        f"Exported TF.js acc: {exported_acc * 100:.2f}% | "
+        f"Gap: {gap_pp:.2f} pp (max allowed: {max_gap_pp:.2f} pp)"
+    )
+    if gap_pp > max_gap_pp:
+        raise RuntimeError(
+            f"Exported TF.js accuracy ({exported_acc * 100:.2f}%) differs by {gap_pp:.2f} percentage points "
+            f"from Keras accuracy ({keras_acc * 100:.2f}%), exceeding {max_gap_pp:.2f} pp limit!"
+        )
+    return exported_acc, gap_pp
 
 
 if __name__ == "__main__":

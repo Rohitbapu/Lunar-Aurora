@@ -18,6 +18,7 @@ class TourManager {
     this.totalXp = 50;
     this.blueprintStops = [];
     this.siteEdges = [];
+    this.availableClassModels = null;
     this.currentStopData = null;
     this.hiddenTimestamp = null;
     this.hasPlayedInitialWelcome = false;
@@ -160,6 +161,7 @@ class TourManager {
         const ov = await ovRes.json();
         this.siteEdges = ov.edges || [];
         this.siteNodes = ov.nodes || [];
+        this.availableClassModels = ov.available_class_models || {};
       }
       if (window.locationTracker) {
         let loaded = false;
@@ -188,6 +190,26 @@ class TourManager {
         }
       }
     }
+  }
+
+  async resolveClassModelUrl(classId) {
+    const validIds = [
+      'shore_temple_vimana',
+      'pancha_rathas',
+      'arjunas_penance',
+      'krishnas_butter_ball',
+      'mahishasuramardini_cave'
+    ];
+    if (!classId || !validIds.includes(classId)) return null;
+    try {
+      const ovRes = await fetch('/api/site/overview');
+      if (ovRes.ok) {
+        const ov = await ovRes.json();
+        this.availableClassModels = ov.available_class_models || {};
+      }
+    } catch (e) {}
+    const map = this.availableClassModels || {};
+    return map[classId] || null;
   }
 
   async retryLoadRadiiFromApi(maxRetries = 2, delayMs = 350) {

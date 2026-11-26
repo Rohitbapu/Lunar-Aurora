@@ -70,6 +70,11 @@ class ARScene {
 
     if (THREE.GLTFLoader) {
       this.gltfLoader = new THREE.GLTFLoader();
+      if (THREE.DRACOLoader) {
+        const dracoLoader = new THREE.DRACOLoader();
+        dracoLoader.setDecoderPath('/app/vendor/three/draco/');
+        this.gltfLoader.setDRACOLoader(dracoLoader);
+      }
     }
 
     this._buildCornerGuideAvatar();
@@ -161,8 +166,13 @@ class ARScene {
     this._clearReconstruction();
   }
 
-  showRelicModel(modelUrl, title = "Monument") {
+  showRelicModel(modelUrl, title = "Monument", onLoadError = null) {
     this._clearReconstruction();
+    if (!this.gltfLoader || !modelUrl) {
+      if (typeof onLoadError === 'function') onLoadError(new Error("GLTFLoader or modelUrl unavailable"));
+      return;
+    }
+
     const container = new THREE.Group();
     container.position.set(0, 1.32, -2.1);
     this.reconstructionGroup = container;
@@ -209,16 +219,16 @@ class ARScene {
       this.setEraFactor(this.eraFactor);
     };
 
-    if (this.gltfLoader && modelUrl) {
-      this.gltfLoader.load(
-        modelUrl,
-        (gltf) => finalizeObject(gltf.scene),
-        undefined,
-        () => finalizeObject(this._createFallbackSculpture(title))
-      );
-    } else {
-      finalizeObject(this._createFallbackSculpture(title));
-    }
+    this.gltfLoader.load(
+      modelUrl,
+      (gltf) => finalizeObject(gltf.scene),
+      undefined,
+      (err) => {
+        console.warn(`[ARScene] Failed to load model ${modelUrl}:`, err);
+        this._clearReconstruction();
+        if (typeof onLoadError === 'function') onLoadError(err);
+      }
+    );
   }
 
   _createFallbackSculpture(title) {

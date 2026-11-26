@@ -37,6 +37,8 @@ def run_tests():
     assert all("OpenStreetMap" in (n.get("coordinate_source") or "") for n in nodes)
     assert all("OpenStreetMap" in (e.get("distance_source") or "") for e in edges)
     assert all(n.get("model_asset_url") is None for n in nodes)
+    avail_models = ov.json().get("available_class_models", {})
+    assert "Grand_Solstice_Sun_Temple" not in str(avail_models)
     for img_name in [
         "01_shore_temple_vimana.jpg",
         "02_pancha_rathas.jpg",

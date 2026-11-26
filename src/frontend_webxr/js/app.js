@@ -361,14 +361,42 @@ function setupUI() {
   }
 }
 
-function openCurrentReconstruction(title = null, modelUrl = null, latencyMs = null) {
+async function presentMonumentMediaOrModel(art, classId = null, latencyMs = null) {
+  if (!art) return;
+  const infoPanel = document.getElementById('relic-info-panel');
+  const eraPanel = document.getElementById('era-reconstruction-panel');
+  const resolvedClass = classId || art.code || null;
+  const resolvedModelUrl = (resolvedClass && window.tourManager)
+    ? await window.tourManager.resolveClassModelUrl(resolvedClass)
+    : null;
+
+  if (resolvedModelUrl && window.arScene) {
+    if (infoPanel) infoPanel.style.display = 'none';
+    const titleEl = document.getElementById('era-model-title');
+    const attrEl = document.getElementById('era-model-attribution');
+    const noteEl = document.getElementById('era-model-note');
+    const latEl = document.getElementById('era-model-latency');
+    if (titleEl) titleEl.textContent = art.name || 'Mahabalipuram Monument';
+    if (attrEl) attrEl.textContent = 'Model by Team Lunar Aurora - stylised';
+    if (noteEl) noteEl.textContent = 'Not a survey-accurate reconstruction.';
+    if (latEl) latEl.textContent = latencyMs ? `(${latencyMs} ms)` : '';
+    if (eraPanel) eraPanel.style.display = 'block';
+    window.arScene.showRelicModel(resolvedModelUrl, art.name || 'Monument', () => {
+      if (eraPanel) eraPanel.style.display = 'none';
+      showRelicPhotoInfoPanel(art, latencyMs);
+    });
+    return;
+  }
+
+  if (eraPanel) eraPanel.style.display = 'none';
+  if (window.arScene) window.arScene.hideRelicModel();
+  showRelicPhotoInfoPanel(art, latencyMs);
+}
+
+async function openCurrentReconstruction(title = null, modelUrl = null, latencyMs = null) {
   const stopData = window.tourManager && window.tourManager.currentStopData;
   const resolvedTitle = title || (stopData && stopData.title) || 'Mahabalipuram Monument';
   const relicCode = (stopData && stopData.target_relic_code) || null;
-
-  const eraPanel = document.getElementById('era-reconstruction-panel');
-  if (eraPanel) eraPanel.style.display = 'none';
-  if (window.arScene) window.arScene.hideRelicModel();
 
   const cardImageMap = {
     shore_temple_vimana: '/static/cards/01_shore_temple_vimana.jpg',
@@ -378,14 +406,15 @@ function openCurrentReconstruction(title = null, modelUrl = null, latencyMs = nu
     mahishasuramardini_cave: '/static/cards/05_mahishasuramardini_cave.jpg'
   };
 
-  showRelicPhotoInfoPanel({
+  await presentMonumentMediaOrModel({
+    code: relicCode,
     name: resolvedTitle,
     period: (stopData && stopData.era) || '7th-8th century CE',
     style: (stopData && stopData.subtitle) || 'Mahabalipuram Heritage Monument',
     story: (stopData && stopData.script_details) || 'Verified Mahabalipuram historical notes.',
     image_url: relicCode ? (cardImageMap[relicCode] || null) : null,
     source: stopData && stopData.source
-  }, latencyMs);
+  }, relicCode, latencyMs);
 }
 
 function showRelicPhotoInfoPanel(art, latencyMs = null) {
@@ -653,16 +682,12 @@ async function submitChatMessage() {
   }
 }
 
-function onArtifactIdentified(data) {
+async function onArtifactIdentified(data) {
   const art = data.artifact;
   showNotification(`Identified: ${art.name}`);
   displaySubtitlesAndSpeak(art.name, '', `${art.story} ${art.fun_fact || ''}`, data.audio_url, true);
 
-  // Grand_Solstice_Sun_Temple.glb is hidden from UI; all 5 carving classes display verified photo + facts panel
-  if (window.arScene) window.arScene.hideRelicModel();
-  const eraPanel = document.getElementById('era-reconstruction-panel');
-  if (eraPanel) eraPanel.style.display = 'none';
-  showRelicPhotoInfoPanel(art, data.inference_ms || null);
+  await presentMonumentMediaOrModel(art, art.code || null, data.inference_ms || null);
 
   if (data.session_progress && window.tourManager) {
     window.tourManager.totalXp = data.session_progress.total_xp;
