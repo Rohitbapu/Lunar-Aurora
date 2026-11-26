@@ -180,12 +180,14 @@ function setupUI() {
     });
   }
 
-  // Era Slider & Close
+  // Era Slider & Close (wire both input and change for mobile touch sliders)
   const eraSlider = document.getElementById('era-slider-input');
   if (eraSlider) {
-    eraSlider.addEventListener('input', () => {
+    const onEraChange = () => {
       if (window.arScene) window.arScene.setEraFactor(Number(eraSlider.value) / 100.0);
-    });
+    };
+    eraSlider.addEventListener('input', onEraChange);
+    eraSlider.addEventListener('change', onEraChange);
   }
   const closeEraBtn = document.getElementById('btn-close-era-panel');
   if (closeEraBtn) {
@@ -658,7 +660,7 @@ async function handleTakeARest() {
       const data = await res.json();
       if (data.found) {
         const destNode = data.path_nodes[data.path_nodes.length - 1];
-        const msg = `Follow the green shaded route to ${destNode.name} (${data.total_distance_meters}m, saving ${data.heat_exposure_saved_pct}% heat exposure).`;
+        const msg = `Follow the green shaded route to ${destNode.name} (${data.total_distance_meters}m, estimated ${data.heat_exposure_saved_pct}% lower exposure — model estimate).`;
         displaySubtitlesAndSpeak("Luna", "", msg, null, false);
         const mapModal = document.getElementById('modal-map');
         if (mapModal) {
@@ -668,7 +670,7 @@ async function handleTakeARest() {
       }
     }
   } catch (e) {
-    showNotification("Rest route: Proceed to Arjuna's Penance Banyan Canopy.");
+    showNotification("Rest route: Proceed to Varaha Cave Temple for rock-cut stone shade.");
   }
 }
 

@@ -444,8 +444,8 @@ async function renderInteractiveBlueprintMap(targetOverrideId = null) {
       const detail = document.getElementById('map-route-detail');
       if (detail) {
         detail.innerHTML =
-          `<span style="color:#ff5252;">Direct Sun: ${tel.shortest_path.total_distance_meters}m (${tel.shortest_path.sun_exposure_meters}m glare)</span> vs ` +
-          `<span style="color:#00e676;">Shaded Route: ${tel.shaded_path.total_distance_meters}m (${tel.heat_exposure_saved_pct}% heat saved)</span>`;
+          `<span style="color:#ff5252;">Direct Sun: ${tel.shortest_path.total_distance_meters}m (${tel.shortest_path.sun_exposure_meters}m model exposure)</span> vs ` +
+          `<span style="color:#00e676;">Shaded Route: ${tel.shaded_path.total_distance_meters}m (${tel.heat_exposure_saved_pct}% model estimate)</span>`;
       }
     }
   } catch (e) {}

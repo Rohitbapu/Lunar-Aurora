@@ -30,7 +30,7 @@ class ShadeMapRenderer {
             this.badge.innerHTML =
                 `<span style="color:#ff5252;">● Sun</span> vs ` +
                 `<span style="color:#00e676;">● Shaded</span> ` +
-                `| <strong>Heat Saved: ${saved}%</strong> ` +
+                `| <strong>Est. Heat Saved (model estimate): ${saved}%</strong> ` +
                 `(${deltaM >= 0 ? "+" : ""}${deltaM}m, Sun ${sunDeg}°)`;
         }
         this.render();

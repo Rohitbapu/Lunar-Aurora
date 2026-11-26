@@ -87,6 +87,32 @@ class SpatialAudioEngine {
     }
   }
 
+  /**
+   * Updates PannerNode 3D world position directly from mobile DeviceOrientation angles
+   * so turning the phone pans binaural HRTF narration smoothly on Android Chrome HTTPS.
+   */
+  updatePannerFromOrientation(alphaDeg, betaDeg, gammaDeg) {
+    this.lastOrientation = { alphaDeg, betaDeg, gammaDeg };
+    if (!this.ctx || !this.panner) return;
+
+    const yawRad = ((alphaDeg || 0) * Math.PI) / 180.0;
+    const pitchRad = (((betaDeg ?? 70) - 70) * Math.PI) / 180.0;
+    const dist = 1.6;
+    const px = Math.sin(yawRad) * dist;
+    const py = 1.4 + Math.sin(pitchRad) * 0.4;
+    const pz = -Math.cos(yawRad) * dist;
+
+    this.lastPannerPosition = { x: Number(px.toFixed(3)), y: Number(py.toFixed(3)), z: Number(pz.toFixed(3)) };
+
+    if (this.panner.positionX) {
+      this.panner.positionX.value = px;
+      this.panner.positionY.value = py;
+      this.panner.positionZ.value = pz;
+    } else if (this.panner.setPosition) {
+      this.panner.setPosition(px, py, pz);
+    }
+  }
+
   stopSpeech() {
     this.playbackId++;
     this.isPlaying = false;

@@ -1,6 +1,6 @@
 # Open-Source Software (OSS) & Asset Attribution Disclosure
 
-Team **Lunar Aurora** (XR Innovation Challenge 2026) documents every third-party library, photograph, 3D model, and authored artifact below.
+Team **Lunar Aurora** (XR Innovation Challenge 2026) documents every third-party library, photograph, encyclopedic text source, 3D model, and authored artifact below.
 
 ## 1. Vendored Frontend Libraries (`src/frontend_webxr/vendor/`)
 
@@ -14,34 +14,46 @@ Team **Lunar Aurora** (XR Innovation Challenge 2026) documents every third-party
 
 ## 2. Carving Card Photographs (`docs/carving_cards/images/`)
 
-*(Governed by each image's Creative Commons license in `docs/carving_cards/images/LICENSE-NOTICE.md` — **NOT** the repository's root MIT license.)*
+*(Original full-resolution Wikimedia Commons downloads; governed by each image's Creative Commons license in `docs/carving_cards/images/LICENSE-NOTICE.md` — **NOT** the repository's root MIT license.)*
 
-| Local Image File | Title & Monument | Author | License | Source URL | Modifications |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `01_shore_temple_vimana.jpg` | Mahabalipuram - Shore Temple | `xiquinhosilva` | **CC BY 4.0** | https://commons.wikimedia.org/wiki/File:Mahabalipuram_-_55439857496.jpg | Print-resized (`1600px` width) |
-| `02_pancha_rathas.jpg` | Mahabalipuram, Pancha Rathas, India | `Vyacheslav Argenberg` | **CC BY 4.0** | https://commons.wikimedia.org/wiki/File:Mahabalipuram,_Pancha_Rathas,_India.jpg | Print-resized (`1600px` width) |
-| `03_arjunas_penance.jpg` | Arjuna's Penance (Descent of the Ganges), Mamallapuram | `Deepak2885` | **CC BY-SA 4.0** *(ShareAlike required for derivatives)* | https://commons.wikimedia.org/wiki/File:Arjuna%E2%80%99s_Penance-Mamallapuram-unesco.jpg | Print-resized (`1600px` width) |
-| `04_krishnas_butter_ball.jpg` | India - Temples & Towers - 019 - Mamallapuram - Krishna's Butterball | `McKay Savage` | **CC BY 2.0** | https://commons.wikimedia.org/wiki/File:India_-_Temples_%26_Towers_-_019_-_Mamallapuram_-_Krishna%27s_Butterball.jpg | Print-resized (`1600px` width) |
-| `05_mahishasuramardini_cave.jpg` | Mahabalipuram - Mahishasuramardini Cave Temple Panel | `Rainer Halama` | **CC BY-SA 4.0** *(ShareAlike required for derivatives)* | https://commons.wikimedia.org/wiki/File:Mahabalipuram-Mahishasuramardini_Cave_Temple-WUS01941.jpg | Print-resized (`1600px` width) |
+| Local Image File | Resolution | Title & Monument | Author | License | Source URL | Modifications |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| `01_shore_temple_vimana.jpg` | `3000x1996` | Mahabalipuram - Shore Temple | `xiquinhosilva` | **CC BY 4.0** | https://commons.wikimedia.org/wiki/File:Mahabalipuram_-_55439857496.jpg | unmodified (original file) |
+| `02_pancha_rathas.jpg` | `4032x2688` | Mahabalipuram, Pancha Rathas, India | `Vyacheslav Argenberg` | **CC BY 4.0** | https://commons.wikimedia.org/wiki/File:Mahabalipuram,_Pancha_Rathas,_India.jpg | unmodified (original file) |
+| `03_arjunas_penance.jpg` | `6016x4000` | Arjuna's Penance (Descent of the Ganges), Mamallapuram | `Deepak2885` | **CC BY-SA 4.0** *(ShareAlike required for derivatives)* | https://commons.wikimedia.org/wiki/File:Arjuna%E2%80%99s_Penance-Mamallapuram-unesco.jpg | unmodified (original file) |
+| `04_krishnas_butter_ball.jpg` | `2592x1944` | India - Temples & Towers - 019 - Mamallapuram - Krishna's Butterball | `McKay Savage` | **CC BY 2.0** | https://commons.wikimedia.org/wiki/File:India_-_Temples_%26_Towers_-_019_-_Mamallapuram_-_Krishna%27s_Butterball.jpg | unmodified (original file) |
+| `05_mahishasuramardini_cave.jpg` | `6000x4000` | Mahabalipuram - Mahishasuramardini Cave Temple Panel | `Rainer Halama` | **CC BY-SA 4.0** *(ShareAlike required for derivatives)* | https://commons.wikimedia.org/wiki/File:Mahabalipuram-Mahishasuramardini_Cave_Temple-WUS01941.jpg | unmodified (original file) |
 
-## 3. 3D Models (`src/frontend_webxr/assets/models/` & `src/kiosk_unity/SonyPlayer_3DAssets/`)
+## 3. Encyclopedic Text & Narration Sources (Wikipedia — CC BY-SA 4.0)
+
+Historical descriptions, monument dates, dimensions, riddles, and audio narration summaries stored in `src/backend/init_db.py`, `src/backend/app/services/groq_service.py`, and synthesized into `src/backend/static/audio_cache/*.mp3` were derived from English Wikipedia articles licensed under **Creative Commons Attribution-ShareAlike 4.0 (CC BY-SA 4.0)**:
+
+| Subject / Database Entries | Article Title & Source URL | License |
+| :--- | :--- | :--- |
+| Mahabalipuram UNESCO Overview (Stop 1) | Group of Monuments at Mahabalipuram — https://en.wikipedia.org/wiki/Group_of_Monuments_at_Mahabalipuram | CC BY-SA 4.0 |
+| Shore Temple (`shore_temple_vimana`, Stop 2, Quest 1) | Shore Temple — https://en.wikipedia.org/wiki/Shore_Temple | CC BY-SA 4.0 |
+| Pancha Rathas (`pancha_rathas`, Stop 3, Quest 2) | Pancha Rathas — https://en.wikipedia.org/wiki/Pancha_Rathas | CC BY-SA 4.0 |
+| Arjuna's Penance (`arjunas_penance`, Stop 4, Quest 3) | Descent of the Ganges (Mahabalipuram) — https://en.wikipedia.org/wiki/Descent_of_the_Ganges_(Mahabalipuram) | CC BY-SA 4.0 |
+| Krishna's Butterball (`krishnas_butter_ball`, Stop 5) | Krishna's Butterball — https://en.wikipedia.org/wiki/Krishna%27s_Butterball | CC BY-SA 4.0 |
+| Varaha Cave Temple (Stop 6 shaded cave shelter) | Varaha Cave Temple — https://en.wikipedia.org/wiki/Varaha_Cave_Temple | CC BY-SA 4.0 |
+| Mahishasuramardini Mandapa (`mahishasuramardini_cave`, Stop 7) | Mahishasuramardini Mandapa — https://en.wikipedia.org/wiki/Mahishasuramardini_Mandapa | CC BY-SA 4.0 |
+
+## 4. 3D Models (`src/frontend_webxr/assets/models/` & `src/kiosk_unity/`)
 
 - Zero `CC BY-NC` assets are included anywhere in this repository.
-- Three existing `.glb` files (`Grand_Solstice_Sun_Temple.glb`, `Celestial_Airavata_Sculpture.glb`, `Solstitial_Lotus_Gnomon.glb`) are procedural primitive placeholders generated by Team Lunar Aurora (`src/kiosk_unity/generate_glb_exhibits.py`, MIT). Only `Grand_Solstice_Sun_Temple.glb` is shown on `shore_temple_vimana`, labeled explicitly in the UI as **`"Illustrative model"`**; `pancha_rathas`, `arjunas_penance`, `krishnas_butter_ball`, and `mahishasuramardini_cave` display no 3D mesh (photo + sourced facts panel instead) until team-made `.glb` models are added per `src/frontend_webxr/assets/models/README_MODELS_TODO.md`.
+- Three existing `.glb` files (`Grand_Solstice_Sun_Temple.glb`, `Celestial_Airavata_Sculpture.glb`, `Solstitial_Lotus_Gnomon.glb`) are procedural primitive placeholders generated by Team Lunar Aurora (`src/kiosk_unity/generate_glb_exhibits.py`, MIT). Only `Grand_Solstice_Sun_Temple.glb` (`2,700` triangles, `92,520` bytes) is rendered for `shore_temple_vimana` and labeled **`"Illustrative model"`**; all other classes show their verified photo + facts panel until team-made meshes are added per `src/frontend_webxr/assets/models/README_MODELS_TODO.md`.
 
-## 4. Backend & Infrastructure Dependencies (`src/backend/requirements.txt`)
+## 5. Backend & Training Dependencies (`requirements.txt` & `requirements-train.txt`)
 
 | Library | Source | License | Role & Modifications |
 | :--- | :--- | :--- | :--- |
-| **FastAPI & Starlette** | https://github.com/fastapi/fastapi | MIT License | REST API framework; unmodified. |
+| **FastAPI & Starlette** | https://github.com/fastapi/fastapi | MIT | REST API framework; unmodified. |
 | **Uvicorn** | https://github.com/encode/uvicorn | BSD-3-Clause | ASGI HTTP/HTTPS server; unmodified. |
-| **SQLAlchemy** | https://github.com/sqlalchemy/sqlalchemy | MIT License | ORM & SQLite schema; unmodified. |
-| **NetworkX** | https://github.com/networkx/networkx | BSD-3-Clause | Dijkstra graph routing engine; unmodified. |
-| **Groq Python SDK (`groq`)** | https://github.com/groq/groq-python | Apache-2.0 License | LLM API client wrapped with `2.5s` timeout in `groq_service.py`. |
-| **Edge-TTS (`edge-tts`)** | https://github.com/rany2/edge-tts | LGPL-3.0 | Neural voice synthesis with pre-cached offline MP3 failsafe in `tts_service.py`. |
-| **fpdf2 & Pillow** | https://github.com/py-pdf/fpdf2 / https://python-pillow.github.io/ | LGPL-3.0 / HPND | Travel Journal PDF compilation & image handling; unmodified. |
-| **cryptography** | https://github.com/pyca/cryptography | Apache-2.0 / BSD-3-Clause | Generates local `localhost` + LAN IP self-signed TLS certs in `generate_ssl_certs.py`. |
-| **HTTPX / Pydantic / Pydantic-Settings / aiofiles / psycopg2-binary** | PyPI upstream releases | BSD / MIT / LGPL | Test client transport, validation, async I/O, optional PostgreSQL driver; unmodified. |
-
-## 5. Historical Fact Sources
-Every monument description, date, and riddle in `src/backend/init_db.py` is sourced directly via Wikipedia REST summaries (`https://en.wikipedia.org/wiki/...`) for the UNESCO World Heritage Group of Monuments at Mahabalipuram (`https://whc.unesco.org/en/list/249/`).
+| **SQLAlchemy** | https://github.com/sqlalchemy/sqlalchemy | MIT | ORM & SQLite schema; unmodified. |
+| **NetworkX** | https://github.com/networkx/networkx | BSD-3-Clause | Dijkstra graph routing engine (`Heat Saved` values are model estimates, not measurements); unmodified. |
+| **Groq Python SDK (`groq`)** | https://github.com/groq/groq-python | Apache-2.0 | LLM client wrapped with `2.5s` async timeout in `groq_service.py`. |
+| **Edge-TTS (`edge-tts`)** | https://github.com/rany2/edge-tts | LGPL-3.0 | Neural voice synthesis; unmodified. |
+| **fpdf2 & Pillow** | https://github.com/py-pdf/fpdf2 / https://python-pillow.github.io/ | LGPL-3.0 / HPND | Travel Journal PDF export & image inspection; unmodified. |
+| **cryptography** | https://github.com/pyca/cryptography | Apache-2.0 / BSD-3-Clause | Self-signed TLS certificates with LAN IP SANs; unmodified. |
+| **HTTPX / Pydantic / Pydantic-Settings / aiofiles / psycopg2-binary** | PyPI upstream releases | BSD / MIT / LGPL | Test transport, validation, async I/O, optional Postgres driver; unmodified. |
+| **OpenCV (`opencv-python-headless`) / TensorFlow / TFJS / scikit-learn / Matplotlib** *(training only)* | PyPI upstream releases | Apache-2.0 / BSD | Frame extraction & MobileNetV2 classifier training pipeline (`requirements-train.txt`); unmodified. |

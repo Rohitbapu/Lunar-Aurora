@@ -184,13 +184,34 @@ namespace LunarAurora.Editor
             var avatarGuide = avatarObj.AddComponent<LunarAurora.Kiosk.KioskAvatarGuide>();
             if (watcherTarget != null) avatarGuide.visitorFaceTarget = watcherTarget.transform;
 
-            // 6. UI Manager (Secondary Display / Simulation HUD)
+            // 7. SRD2DView / Secondary Operator Panel Rig (Display 1) + Kiosk UI Manager
+            string[] srd2dGuids = AssetDatabase.FindAssets("SRD2DView t:Prefab");
+            if (srd2dGuids.Length > 0)
+            {
+                string view2dPath = AssetDatabase.GUIDToAssetPath(srd2dGuids[0]);
+                GameObject view2dPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(view2dPath);
+                if (view2dPrefab != null)
+                {
+                    GameObject view2dInstance = (GameObject)PrefabUtility.InstantiatePrefab(view2dPrefab);
+                    view2dInstance.name = "SRD2DView";
+                    Debug.Log($"[BuildScript] Wired official Sony prefab: {view2dPath}");
+                }
+            }
+
             GameObject uiObj = new GameObject("KioskUIManager");
             var uiMgr = uiObj.AddComponent<LunarAurora.Kiosk.KioskUIManager>();
             uiMgr.srDisplayController = srController;
             uiMgr.monumentPreview = monumentPreview;
             uiMgr.avatarGuide = avatarGuide;
             uiMgr.networkBridge = bridge;
+
+            GameObject opCamObj = new GameObject("OperatorDisplayCamera");
+            Camera opCam = opCamObj.AddComponent<Camera>();
+            opCam.targetDisplay = 1;
+            opCam.clearFlags = CameraClearFlags.SolidColor;
+            opCam.backgroundColor = new Color(0.03f, 0.05f, 0.09f, 1f);
+            var opHud = opCamObj.AddComponent<LunarAurora.Kiosk.KioskOperatorDisplayHUD>();
+            opHud.uiManager = uiMgr;
 
             Directory.CreateDirectory(Path.GetDirectoryName(scenePath));
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene, scenePath);

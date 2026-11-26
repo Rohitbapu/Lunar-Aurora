@@ -81,17 +81,26 @@ class ARScene {
 
   enableOrientationTracking() {
     if (this._orientBound) return;
+    const handleOrientation = (ev) => {
+      if (ev.alpha === null && ev.beta === null && ev.gamma === null) return;
+      const alphaDeg = ev.webkitCompassHeading !== undefined ? ev.webkitCompassHeading : (ev.alpha || 0);
+      const betaDeg = ev.beta || 0;
+      const gammaDeg = ev.gamma || 0;
+      const alpha = THREE.MathUtils.degToRad(alphaDeg);
+      const beta = THREE.MathUtils.degToRad(betaDeg - 70);
+      const gamma = THREE.MathUtils.degToRad(-gammaDeg);
+      this._euler.set(beta * 0.45, alpha, gamma * 0.45, 'YXZ');
+      this.camera.quaternion.setFromEuler(this._euler);
+      if (window.spatialAudio) {
+        window.spatialAudio.updatePannerFromOrientation(alphaDeg, betaDeg, gammaDeg);
+        window.spatialAudio.updateListener(this.camera);
+      }
+    };
     const bindListener = () => {
       if (this._orientBound) return;
       this._orientBound = true;
-      window.addEventListener('deviceorientation', (ev) => {
-        if (ev.alpha === null || ev.beta === null || ev.gamma === null) return;
-        const alpha = THREE.MathUtils.degToRad(ev.alpha || 0);
-        const beta = THREE.MathUtils.degToRad((ev.beta || 0) - 70);
-        const gamma = THREE.MathUtils.degToRad(-(ev.gamma || 0));
-        this._euler.set(beta * 0.45, alpha, gamma * 0.45, 'YXZ');
-        this.camera.quaternion.setFromEuler(this._euler);
-      });
+      window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+      window.addEventListener('deviceorientation', handleOrientation, true);
     };
 
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -284,6 +293,8 @@ class ARScene {
       this.currentFps = Math.round((this._fpsFrames * 1000) / (now - this._fpsLastTime));
       this._fpsFrames = 0;
       this._fpsLastTime = now;
+      const hudFps = document.getElementById('hud-fps-counter');
+      if (hudFps) hudFps.textContent = `FPS: ${this.currentFps}`;
       const fpsEl = document.getElementById('demo-fps-readout');
       if (fpsEl) fpsEl.textContent = `${this.currentFps} FPS`;
     }
