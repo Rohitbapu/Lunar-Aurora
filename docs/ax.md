@@ -1,63 +1,65 @@
-# Accelerator & Partner Attribution Report (`ax.md`)
+# Accelerator & Technical Report (`ax.md`)
 
-**Project:** Lunar Aurora — Glasses-Free Sony ELF-SR1 & Zero-Install Mobile WebXR Heritage Sanctuary  
-**Team:** Lunar Aurora (Ayyappan Ayyanan, Vikrant R M, Rohit Bapu S B)  
-**Institution:** Sethu Institute of Technology  
-**Submission Track:** XR Innovation Challenge 2026 (GIEC / Partners Track)
-
----
-
-## 1. Executive Summary
-**Lunar Aurora** unites a zero-install Mobile WebXR outdoor companion with a zero-wearable **Sony Spatial Reality Display (ELF-SR1)** holographic kiosk tuned specifically for UNESCO-listed coastal stone heritage sites such as **Mahabalipuram Shore Temple** ($12.6165^\circ\text{ N}, 80.1993^\circ\text{ E}$). Rather than enclosing tourists in heat-trapping HMDs under $35^\circ\text{C+}$ South Indian sun, our architecture balances solar geometry thermal safety routing, offline-resilient multilingual voice synthesis, and volumetric lenticular inspection.
+**Project:** Lunar Aurora — Open-Air Mobile WebXR & Holographic Kiosk Prototype  
+**Team:** Lunar Aurora — Ayyappan Ayyanan, Vikrant R M, Rohit Bapu S B (Sethu Institute of Technology)  
+**Target Event:** XR Innovation Challenge 2026 (Phase 2 Deadline: Dec 25, 2026 | Finale: Jan 11, 2027)  
+**Target Site:** Group of Monuments at Mahabalipuram (12.6165° N, 80.19° E, Tamil Nadu, India)
 
 ---
 
-## 2. Algorithmic Modeling & Solar Formulation (MathWorks Alignment)
-### 2.1 NOAA Solar Declination & Elevation-Azimuth Geometry
-In `src/backend/app/services/routing_service.py`, solar coordinates are calibrated continuously to Mahabalipuram's coastal latitude ($\phi = 12.6165^\circ\text{ N}$) across local hour $t \in [6.0, 18.0]$:
-- Day-of-year solar declination $\delta = 23.44^\circ \sin\left(\frac{360}{365}(d - 81)\right)$
-- Hour angle $H = 15^\circ (t - 12)$
-- Solar elevation $\alpha_s$:
-$$\sin(\alpha_s) = \sin(\phi)\sin(\delta) + \cos(\phi)\cos(\delta)\cos(H)$$
-
-### 2.2 Solar-Weighted Dijkstra Edge Cost Function
-For every walkway graph edge $e = (u, v)$ of physical distance $d_e$ (meters) and structural canopy/colonnade base shade $s_e \in [0, 1]$, dynamic effective shade at time $t$ scales with peak overhead solar glare:
-$$s_{\text{eff}}(e, t) = \text{clamp}\Big(s_e \cdot \big(1 - 0.35\sin(\alpha_s)\big),\; 0.05,\; 0.98\Big)$$
-Two distinct Dijkstra passes run inside `RoutingService.get_dual_telemetry`:
-1. **Standard Shortest Route (Sun-Exposed Red Path):**
-   $$w_{\text{shortest}}(e) = d_e$$
-2. **Solar-Optimized Shaded Route (Cool Emerald Path):**
-   $$w_{\text{shaded}}(e) = d_e \cdot \big(1 + \beta \cdot (1 - s_{\text{eff}}(e, t))\big)$$
-   where midday solar penalty weight $\beta = 3.2$ when $\alpha_s > 55^\circ$ (or $\beta = 1.6$ under milder sun), and total radiative walk exposure is measured as $\sum_{e \in P} d_e (1 - s_{\text{eff}}(e, t))$.
-
-Across the Mahabalipuram 7-station sanctuary graph (`src/backend/init_db.py`), routing visitors through covered colonnades (`yali_courtyard`) and `Arjuna's Penance Banyan Canopy` instead of open courtyard stone shortcuts yields **76.0% Heat Exposure Saved** at 13:00 IST with sub-`5 ms` backend computation (`4.89 ms` mean).
+## 1. Current Implementation Status (Honest Audit)
+1. **Mobile WebXR Frontend (`src/frontend_webxr/`):** Implemented and served over local HTTP (`:8000`) and self-signed LAN HTTPS (`:8443`). Camera-first HUD with 7 sourced Mahabalipuram tour stops, interactive NOAA ShadeMap (`shadeMap.js`), QR ticketing (`/ticket`, `/qr`), binaural WebAudio panner (`spatialAudio.js`), stop riddles, snapshot capture, and multi-page PDF Travel Journal export (`fpdf2`).
+2. **Computer Vision Classifier (`visionEngine.js` + `src/backend/train_classifier.py`):** The MobileNetV2 training pipeline (`train_classifier.py`) and card frame extractor (`tools/extract_frames.py`) are implemented, **but the 6-class classifier is not trained yet** (`data/cards/` captures have not been recorded and `src/frontend_webxr/assets/vision_model/model.json` does not exist). At runtime, tapping `SCAN RELIC` displays `"Vision model not installed"` and does not guess.
+3. **3D Assets (`src/frontend_webxr/assets/models/`):** All bundled `.glb` files are procedural primitive placeholders created by `src/kiosk_unity/generate_glb_exhibits.py`. Only `Grand_Solstice_Sun_Temple.glb` (`2,700` triangles, `92,520` bytes) is attached to `shore_temple_vimana` and labeled **`"Illustrative model"`**. Cards 02–05 render their verified Wikimedia Commons photograph and sourced Wikipedia/UNESCO facts panel until team-made `.glb` models are added.
+4. **Unity 6 Kiosk (`src/kiosk_unity/`):** Compiles cleanly to standalone Windows x64 (`LunarAurora_Kiosk.exe`), **currently running strictly in `No-SRD simulation mode`**. Sony `SRDisplayUnityPlugin` is **not** installed in `Packages/manifest.json` and `SRDISPLAY_SDK_PRESENT` is **not** defined in `ProjectSettings.asset`. Secondary controls route to **`Operator HUD (second display)`** (`KioskOperatorDisplayHUD` on Display 1 when present). See `docs/sony_srd_integration_todo.md` for hardware integration steps.
 
 ---
 
-## 3. 3D Reconstruction & Asset Optimization Pipeline
-- **Shared Asset Target:** Compact glTF 2.0 `.glb` meshes stored in both `src/kiosk_unity/SonyPlayer_3DAssets/` and `src/frontend_webxr/assets/models/`:
-  - `Grand_Solstice_Sun_Temple.glb`
-  - `Celestial_Airavata_Sculpture.glb`
-  - `Solstitial_Lotus_Gnomon.glb`
-- **Mobile Era Slider (700 CE Zenith $\leftrightarrow$ Present Eroded Stone):** WebXR `ARScene` (`src/frontend_webxr/js/arScene.js`) renders synchronized solid textured meshes over an emissive cyan architectural blueprint wireframe, letting visitors scrub reconstruction completeness on top of live rear-camera stone walls.
+## 2. NOAA Solar Geometry & Shaded Dijkstra Model
+### 2.1 NOAA General Solar Position Equations (`src/backend/app/services/routing_service.py`)
+Solar position is computed for Mahabalipuram (`lat = 12.6165° N`, `lon = 80.19° E`, IST `UTC+5:30`) using `date` (default `2027-01-11`, Finale date) and decimal `hour` (`0.0–24.0`):
+- Fractional year ($\gamma$ in radians):
+  $$\gamma = \frac{2\pi}{\text{days\_in\_year}} \left(\text{doy} - 1 + \frac{\text{hour} - 12}{24}\right)$$
+- Equation of time (`eq_time_min`) and solar declination ($\delta$ in radians) via standard NOAA Fourier expansions.
+- True solar time ($\text{TST} = \text{hour} \cdot 60 + \text{eq\_time\_min} + 4 \cdot \text{lon} - 60 \cdot 5.5 \bmod 1440$) and solar hour angle ($H = \text{TST}/4 - 180^\circ$).
+- Solar zenith $\Phi$ from $\cos\Phi = \sin\phi\sin\delta + \cos\phi\cos\delta\cos H$, yielding `solar_elevation_deg = max(0, 90 - deg(Phi))` and azimuth clockwise from North.
+
+**Verified against independent Meeus astronomical calculation on `2027-01-11` (`test_suite.py` Step 6b):**
+
+| IST Hour | Computed Elevation | Ref Elevation | Computed Azimuth | Ref Azimuth | Declination | EoT (min) | Hour Angle |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `09:00` | `30.75°` | `30.68°` (`0.07°` diff) | `125.36°` | `125.18°` (`0.18°` diff) | `-21.95°` | `-7.08` | `-49.08°` |
+| `12:00` | `55.22°` | `55.31°` (`0.09°` diff) | `173.33°` | `173.07°` (`0.26°` diff) | `-21.93°` | `-7.13` | `-4.09°` |
+| `16:00` | `25.23°` | `25.40°` (`0.17°` diff) | `238.13°` | `238.16°` (`0.03°` diff) | `-21.90°` | `-7.20` | `55.89°` |
+
+Both the WebXR ShadeMap date/time controls and Unity's `KioskNetworkBridge.cs` -> `HolographicMonumentPreview.cs` directional sun light query `GET /api/site/telemetry?date=...&hour=...` dynamically.
+
+### 2.2 Courtyard Shade Weighting & Heat Saved Model Estimate
+For each graph edge $e = (u, v)$ with length $d_e$ (meters), base canopy factor $s_e$, and path category (`cave_shelter`, `cave_approach`, `tree_avenue`, `coastal_walk`, `open_stone`), `compute_dynamic_shade` computes dynamic shade $s_{\text{eff}}(e, t) \in [0.05, 0.95]$ using `sin(elevation_deg)`. Shaded Dijkstra minimizes $\sum d_e \cdot (1 + 2.8 (1 - s_{\text{eff}}))$, while Shortest Dijkstra minimizes $\sum d_e$.
+
+- **`Heat Exposure Saved` is a model estimate, not a radiometric field measurement:**
+  $$\text{Heat Saved (\%)} = \left(1 - \frac{\sum_{e \in P_{\text{shaded}}} d_e(1 - s_{\text{eff}})}{\sum_{e \in P_{\text{shortest}}} d_e(1 - s_{\text{eff}})}\right) \times 100$$
+- Measured backend model estimate from Stop 1 -> Stop 7 at `2027-01-11 12:00 IST` (`55.22°` solar elevation): **`80.5%` (model estimate)** (`test_suite.py`).
 
 ---
 
-## 4. Sony Spatial Reality Display (ELF-SR1) & Unity 6 Integration
-Our Windows standalone kiosk (`src/kiosk_unity/`) follows Sony's dual-display and lenticular optical engineering guidelines:
-- **Zero Lenticular Tear (`VSync = 0`):** All quality tiers in `ProjectSettings/QualitySettings.asset` and `SRDisplayViewerController.cs` force `QualitySettings.vSyncCount = 0; Application.targetFrameRate = 60;`.
-- **Clean 3D Stereoscopic Box Isolation:** `KioskUIManager.cs` suppresses floating 2D `OnGUI` text on the primary eye-tracked lenticular display (`Display 0`) when `hardwareSdkActive == true`, routing operator controls to secondary displays and offering an instant **`No-SRD Simulation Mode`** (`[S]`) for non-hardware demonstrations.
-- **Real-Time Crowd & Solar Telemetry:** `KioskNetworkBridge.cs` polls `GET /api/site/telemetry` every `2.0s` to drive animated courtyard thermal tiles and 7 stop occupancy beacons inside `HolographicMonumentPreview.cs`.
+## 3. Measured Backend KPIs & Pending Device Measurements
+From `src/backend/benchmark_kpis.py` (20 measured iterations after 1 warmup call, saved to `src/backend/benchmark_results_20261126_134622.json`):
+
+| Benchmark | Mean Latency | P95 Latency | Status |
+| :--- | :---: | :---: | :--- |
+| Dijkstra shaded-route compute | `0.33 ms` | `0.42 ms` | MEASURED |
+| NOAA solar calculation (`2027-01-11 12:00 IST`) | `0.01 ms` | `0.01 ms` | MEASURED |
+| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `2.95 ms` | `3.22 ms` | MEASURED |
+| Online AI latency (`Groq + Edge-TTS`) | — | — | `NOT MEASURED - no API key` |
+| Vision metadata lookup (`POST /api/vision/identify`) | `5.80 ms` | `6.37 ms` | MEASURED |
+| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `5.44 ms` | `5.12 ms` | MEASURED |
+| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `12.77 ms` | `13.40 ms` | MEASURED |
+| API test suite pass rate (`test_suite.py`) | `9/9 (100.0%)` in `1658.05 ms` | — | MEASURED |
+
+**Device/Hardware KPIs (not measured yet):** `mobile_fps`, `qr_to_ar_launch_ms`, `vision_on_device_ms`, and `unity_frame_time_ms` remain tagged **`MEASURE ON DEVICE`**.
 
 ---
 
-## 5. Edge AI Vision, Voice & Offline Failsafe Engineering
-- **On-Device Carving Card Classifier (`visionEngine.js`):** Supports hot-loading a trained TensorFlow.js classifier (`assets/vision_model/model.json`) alongside offline MobileNet/COCO-SSD detection and `carving_signatures.json` with a strict `>= 0.82` confidence threshold and live `performance.now()` latency telemetry.
-- **2.5s Cloud Timeout + Zero-Drop Offline Continuity:** Both `groq_service.py` (Groq Llama-3.3-70B) and `tts_service.py` (Edge-TTS `en-IN-NeerjaNeural`, `ta-IN-PallaviNeural`, `hi-IN-SwaraNeural`) enforce `asyncio.wait_for(..., timeout=2.5)`. If rural/coastal mobile connectivity drops, responses degrade transparently to `static/audio_cache/` (44 pre-synthesized EN/TA/HI MP3s) and `OFFLINE_QA_BANK`.
-
----
-
-## 6. Key Engineering Learnings
-1. **Never Obstruct Real Heritage Stone:** Early full-screen 3D widgets felt cluttered outdoors; shifting to a camera-first HUD with an on-demand Era Slider and toggleable `[3D GUIDE]` corner spirit improved readability during live movement.
-2. **Lenticular Hardware Discipline:** Blocking `VSync` and keeping flat 2D text off the lenticular Display 0 surface eliminates eye strain and ghosting artifacts documented in Sony SRD developer guidelines.
-3. **Deterministic Failover Wins Field Demos:** Coastal ruins suffer cellular dead zones; strict `2.5s` timeouts paired with pre-cached local MP3s guarantee sub-`10 ms` offline responses when networks stall.
+## 4. Development Tooling Disclosure
+Portions of software architecture refactoring, NOAA solar implementation, documentation cleanup, and test verification were developed with assistance from **Antigravity** (AI coding assistant), with all source code, attributions, and test results reviewed and run locally.

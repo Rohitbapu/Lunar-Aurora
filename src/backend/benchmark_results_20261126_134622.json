@@ -1,0 +1,84 @@
+{
+  "generated_at_utc": "2026-11-26T13:46:22.684016+00:00",
+  "site": "Mahabalipuram (12.6165 N, 80.19 E)",
+  "default_demo_date": "2027-01-11",
+  "backend_benchmarks": [
+    {
+      "operation": "Dijkstra shaded-route compute (direct DB graph)",
+      "status": "MEASURED",
+      "iterations": 20,
+      "mean_ms": 0.33,
+      "p95_ms": 0.42,
+      "min_ms": 0.3,
+      "max_ms": 0.43
+    },
+    {
+      "operation": "NOAA solar calculation (2027-01-11 12:00 IST)",
+      "status": "MEASURED",
+      "iterations": 20,
+      "mean_ms": 0.01,
+      "p95_ms": 0.01,
+      "min_ms": 0.01,
+      "max_ms": 0.01
+    },
+    {
+      "operation": "Cached-audio hit (GET /static/audio_cache/stop_1_en.mp3)",
+      "status": "MEASURED",
+      "iterations": 20,
+      "mean_ms": 2.95,
+      "p95_ms": 3.22,
+      "min_ms": 2.63,
+      "max_ms": 3.29
+    },
+    {
+      "operation": "Online AI latency (Groq + Edge-TTS)",
+      "status": "NOT MEASURED - no API key",
+      "iterations": 0,
+      "mean_ms": null,
+      "p95_ms": null,
+      "min_ms": null,
+      "max_ms": null
+    },
+    {
+      "operation": "Vision metadata lookup (POST /api/vision/identify)",
+      "status": "MEASURED",
+      "iterations": 20,
+      "mean_ms": 5.8,
+      "p95_ms": 6.37,
+      "min_ms": 5.33,
+      "max_ms": 6.74
+    },
+    {
+      "operation": "Dual-route NOAA telemetry (GET /api/site/telemetry)",
+      "status": "MEASURED",
+      "iterations": 20,
+      "mean_ms": 5.44,
+      "p95_ms": 5.12,
+      "min_ms": 3.46,
+      "max_ms": 30.3
+    },
+    {
+      "operation": "PDF Travel Journal export (POST /api/tour/{sid}/journal)",
+      "status": "MEASURED",
+      "iterations": 20,
+      "mean_ms": 12.77,
+      "p95_ms": 13.4,
+      "min_ms": 12.06,
+      "max_ms": 13.49
+    }
+  ],
+  "api_test_suite": {
+    "status": "MEASURED",
+    "exit_code": 0,
+    "passed_steps": 9,
+    "total_steps": 9,
+    "pass_rate_pct": 100.0,
+    "duration_ms": 1658.05
+  },
+  "device_hardware_kpis": {
+    "mobile_fps": "MEASURE ON DEVICE",
+    "qr_to_ar_launch_ms": "MEASURE ON DEVICE",
+    "vision_on_device_ms": "MEASURE ON DEVICE",
+    "unity_frame_time_ms": "MEASURE ON DEVICE"
+  }
+}

@@ -1,46 +1,67 @@
-# Lunar Aurora — Glasses-Free Sony ELF-SR1 & WebXR Heritage Sanctuary Guide
+# Lunar Aurora — Open-Air Mahabalipuram WebXR & Tabletop Kiosk Prototype
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-00e5ff.svg)](LICENSE)
-[![Domain: Mahabalipuram Heritage](https://img.shields.io/badge/UNESCO%20Site-Mahabalipuram%2012.6165%C2%B0N-f4c430.svg)](docs/architecture.md)
-[![Offline Failsafe](https://img.shields.io/badge/Cloud%20Timeout%20SLA-2.5s%20%2B%2044%20MP3%20Cache-00e676.svg)](docs/ax.md)
+[![Site: Mahabalipuram](https://img.shields.io/badge/UNESCO%20Site-Mahabalipuram%2012.6165%C2%B0N-f4c430.svg)](docs/architecture.md)
+[![Unity Mode: No-SRD Sim](https://img.shields.io/badge/Unity%20Kiosk-No--SRD%20Simulation%20Mode-ffca28.svg)](docs/sony_srd_integration_todo.md)
 
-**Team Lunar Aurora** — *Ayyappan Ayyanan, Vikrant R M, Rohit Bapu S B* (Sethu Institute of Technology)
-
-> **Video Showcase Placeholders:**
-> - **90-Second Pitch & Live Demo:** `[YouTube Pitch Video Link — Pending Final Capture before Dec 25 Submission]`
-> - **Technical Walkthrough (Sony ELF-SR1 + WebXR + ShadeMap):** `[YouTube Walkthrough Video Link — Pending Final Capture before Dec 25 Submission]`
+**Team Lunar Aurora** — *Ayyappan Ayyanan, Vikrant R M, Rohit Bapu S B* (Sethu Institute of Technology)  
+**Target Milestone:** XR Innovation Challenge 2026 (Phase 2: Dec 25, 2026 | Finale: Jan 11, 2027)
 
 ---
 
-## What Is Lunar Aurora?
-**Lunar Aurora** is an open-air spatial computing guide designed for India's coastal stone monuments (**Mahabalipuram Shore Temple Complex**). It pairs:
-1. **Zero-Install Mobile WebXR Companion (`src/frontend_webxr/`):** Camera-first AR viewport keeping stone carvings unobstructed while walking, featuring on-demand `.glb` **3D Era Slider** reconstruction (`Present Ruin <-> 700 CE Zenith`), toggleable corner **`[3D GUIDE]`**, **HRTF Binaural Audio** linked to mobile `DeviceOrientationEvent`, **6-class carving card recognition (`>= 0.82` threshold)**, interactive **Stop Riddles (`+45 XP`)**, watermarked **`[SNAP]`** photography, and a downloadable **PDF Travel Journal**.
-2. **Dual-Route Solar ShadeMap (`shadeMap.js` + `routing_service.py`):** Compares **Shortest Sun-Exposed Paths (Red)** against **Solar-Optimized Shaded Canopy Paths (Green)** using NOAA solar geometry calibrated to `12.6165° N` and NetworkX Dijkstra optimization (**76.0% Heat Exposure Saved** across the Shore Temple courtyard).
-3. **Glasses-Free Sony ELF-SR1 Holographic Kiosk (`src/kiosk_unity/`):** Unity 6 standalone visitor-center exhibit (`VSync = 0`, Dual-Display lenticular UI isolation, `No-SRD Simulation Mode` toggle) that polls `GET /api/site/telemetry` every **2 seconds** to display live courtyard crowd pins and solar shade heatmaps.
+## What Currently Works in This Repository
+1. **Zero-CDN Mobile WebXR & QR Ticketing (`src/frontend_webxr/` + `src/backend/`):**
+   - Counter ticket portal (`/ticket`, `/qr`) generates URL-encoded QR launch links in **English (`EN`)**, **Tamil (`TA`)**, or **Hindi (`HI`)** with self-signed LAN TLS (`generate_ssl_certs.py --ip`) so mobile browsers can access camera/orientation sensors over port `:8443`.
+   - All frontend runtime libraries (`three.min.js`, `GLTFLoader.js`, `tf.min.js`, `qrcode.min.js`, Font Awesome `6.5.1`) are vendored locally inside `src/frontend_webxr/vendor/`.
+   - 7 seeded Mahabalipuram monuments (`init_db.py`) with Wikipedia/UNESCO source URLs, interactive `+45 XP` riddles, **`54`** pre-synthesized EN/TA/HI fallback MP3s (`static/audio_cache/`), `DeviceOrientationEvent` WebAudio panner alignment (`spatialAudio.js`), AR photo capture, and downloadable multi-page `fpdf2` PDF Travel Journals.
+2. **Real NOAA Solar Geometry & Dual-Route ShadeMap (`routing_service.py` + `shadeMap.js`):**
+   - Computes real solar declination, equation of time, hour angle, solar elevation, and solar azimuth for `12.6165° N, 80.19° E` (IST) via the **NOAA General Solar Position Equations**, defaulting to **`2027-01-11`** and exposing `?date=` & `?hour=`.
+   - Verified in `test_suite.py` (`09:00`: `30.75°` elev / `125.36°` azim; `12:00`: `55.22°` elev / `173.33°` azim; `16:00`: `25.23°` elev / `238.13°` azim — within `< 0.26°` of independent Meeus reference).
+   - Both WebXR ShadeMap date/hour controls and Unity `KioskNetworkBridge.cs` consume `/api/site/telemetry?date=...&hour=...` to update shortest sun vs. shaded Dijkstra routes (`80.5%` Heat Exposure Saved **model estimate** at `2027-01-11 12:00 IST`).
+3. **Unity 6 Desktop Kiosk (`src/kiosk_unity/` — `No-SRD simulation mode`):**
+   - Builds cleanly to a standalone Windows x64 executable (`LunarAurora_Kiosk.exe`) distributed on **[GitHub Releases](https://github.com/Rohitbapu/Lunar-Aurora/releases)** (`Builds/` is gitignored).
+   - Displays 3 procedural Mahabalipuram **Illustrative model** placeholders (`Shore Temple`, `Pancha Rathas`, `Krishna's Butterball`), drives directional sunlight from the backend NOAA endpoint, and mirrors telemetry onto **`Operator HUD (second display)`**.
 
 ---
 
-## Verified KPI Benchmarks (20-Iteration TestClient Run)
+## Verified Backend Benchmarks (`benchmark_kpis.py` — 20 Iterations)
+Latest timestamped measurement file: `src/backend/benchmark_results_20261126_134622.json`.
 
-| Operation / Subsystem | Measured Mean Latency | Measured P95 Latency | Notes / SLA Target |
+| Operation | Measured Mean | Measured P95 | Status |
 | :--- | :---: | :---: | :--- |
-| **Solar Dual-Route Telemetry** (`GET /api/site/telemetry`) | **4.89 ms** | **20.55 ms** | Returns both Shortest vs. Shaded paths + `76.0%` heat saved |
-| **Vision Identification & Audio** (`POST /api/vision/identify`) | **9.71 ms** | **43.16 ms** | Matches 5 Mahabalipuram carving classes + Quest badge unlock |
-| **Personalized Session Start** (`POST /api/session/start`) | **6.62 ms** | **7.87 ms** | Backed by 2.5s cloud timeout & 44 offline EN/TA/HI MP3s |
-| **Historical Stop Riddle Quiz** (`POST /api/session/riddle`) | **6.61 ms** | **7.53 ms** | Instant XP award & badge persistence |
-| **PDF Travel Journal Export** (`POST /api/tour/{id}/journal`) | **11.44 ms** | **24.39 ms** | Multi-section illustrated PDF with embedded memory snapshots |
+| Dijkstra shaded-route compute (DB graph) | `0.33 ms` | `0.42 ms` | MEASURED |
+| NOAA solar calculation (`2027-01-11 12:00 IST`) | `0.01 ms` | `0.01 ms` | MEASURED |
+| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `2.95 ms` | `3.22 ms` | MEASURED |
+| Online AI latency (`Groq + Edge-TTS`) | — | — | `NOT MEASURED - no API key` |
+| Vision metadata lookup (`POST /api/vision/identify`) | `5.80 ms` | `6.37 ms` | MEASURED |
+| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `5.44 ms` | `5.12 ms` | MEASURED |
+| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `12.77 ms` | `13.40 ms` | MEASURED |
+| Backend E2E & NOAA API test suite (`test_suite.py`) | `9/9` (`100.0%`) in `1658.05 ms` | — | MEASURED |
 
-All 9 automated end-to-end backend tests (`python src/backend/test_suite.py`) pass cleanly.
+Pending hardware measurements (tagged **`MEASURE ON DEVICE`** in JSON): `mobile_fps`, `qr_to_ar_launch_ms`, `vision_on_device_ms`, and `unity_frame_time_ms`.
+
+---
+
+## Known Limitations
+- **Sony ELF-SR1 Plugin Not Installed (`No-SRD simulation mode`):** Neither Sony's `SRDisplayUnityPlugin` nor `SRDISPLAY_SDK_PRESENT` is installed in `src/kiosk_unity/`. Eyetracked lenticular 3D output is **not** active yet; Unity runs only in `No-SRD simulation mode` until an engineer completes [docs/sony_srd_integration_todo.md](docs/sony_srd_integration_todo.md).
+- **On-Device Carving Classifier Not Trained (`Vision model not installed`):** `data/cards/` training video frames have not yet been captured from printed cards, so `src/frontend_webxr/assets/vision_model/model.json` does not exist yet. Tapping `SCAN RELIC` displays `"Vision model not installed"` rather than guessing (`train_classifier.py` + `tools/extract_frames.py` are ready once card videos are filmed).
+- **3D `.glb` Assets Are Procedural Placeholders:** Only `Grand_Solstice_Sun_Temple.glb` (labeled `"Illustrative model"`) is shown for `shore_temple_vimana`; `pancha_rathas`, `arjunas_penance`, `krishnas_butter_ball`, and `mahishasuramardini_cave` display verified Wikimedia photographs and sourced historical cards until team-authored meshes are placed in `src/frontend_webxr/assets/models/`.
+- **Heat Exposure Saved Is a Model Estimate:** Courtyard shade percentages (`80.5%`) come from `distance * (1 - dynamic_shade_factor)`, not physical pyranometer measurements.
+- **Groq Online AI Latency Unmeasured Locally:** `GROQ_API_KEY` was not set during benchmarking, so `benchmark_kpis.py` marked Groq + Edge-TTS as `NOT MEASURED - no API key`; offline fallback responses and pre-cached MP3s were tested instead.
+- **On-Device Phone & Unity Hardware Timing Unmeasured:** Mobile WebXR frame rate, QR launch time, TF.js mobile inference ms, and ELF-SR1 hardware frame time remain `MEASURE ON DEVICE`.
+- **Self-Signed TLS Certificate Prompt:** Visiting `https://<LAN-IP>:8443` from mobile browsers requires accepting the local self-signed development certificate warning generated by `generate_ssl_certs.py`.
 
 ---
 
 ## Documentation & Deliverables
-- **[Accelerator & MathWorks Formulation Report](docs/ax.md)** (Mandatory partner & algorithmic report)
-- **[Open-Source Software & Asset Attribution](docs/oss_attribution.md)** (Mandatory OSS disclosure)
-- **[System Architecture & API Design](docs/architecture.md)**
-- **[XR Domain Justification (WebXR + Sony ELF-SR1 vs. HMD)](docs/xr_domain_justification.md)**
-- **[Setup, Jury Table Demo Mode & User Guide](docs/setup_and_user_guide.md)**
-- **[Printable 5-Card Mahabalipuram Carving Sheet](docs/carving_cards/print_5_carving_cards.html)**
+- **[Accelerator & Technical Report (`docs/ax.md`)](docs/ax.md)**
+- **[System Architecture (`docs/architecture.md`)](docs/architecture.md)**
+- **[Open-Source Software & Media Attribution (`docs/oss_attribution.md`)](docs/oss_attribution.md)** *(Wikimedia Commons photos retain their individual CC BY / CC BY-SA licenses in `docs/carving_cards/images/LICENSE-NOTICE.md`)*
+- **[Sony SRDisplay Integration TODO (`docs/sony_srd_integration_todo.md`)](docs/sony_srd_integration_todo.md)**
+- **[XR Domain Justification (`docs/xr_domain_justification.md`)](docs/xr_domain_justification.md)**
+- **[Setup & User Guide (`docs/setup_and_user_guide.md`)](docs/setup_and_user_guide.md)**
+- **[Printable 5-Card Mahabalipuram Sheet (`docs/carving_cards/print_5_carving_cards.html`)](docs/carving_cards/print_5_carving_cards.html)**
+- **[Standalone Windows Kiosk EXE (GitHub Releases)](https://github.com/Rohitbapu/Lunar-Aurora/releases)**
 
 ---
 
@@ -51,7 +72,7 @@ python init_db.py
 python test_suite.py
 python start_servers.py
 ```
-Then open `http://localhost:8000/ticket` for counter onboarding or `http://localhost:8000/app/?demo=1` to test **Jury Table Demo Mode** immediately.
+Then open `http://localhost:8000/ticket` or `http://localhost:8000/app/?demo=1`.
 
-## License
-Released under the [MIT License](LICENSE) — Team Lunar Aurora (2026).
+## Tooling Disclosure & License
+Software repository code is released under the [MIT License](LICENSE) — Team Lunar Aurora (2026) *(excluding third-party libraries and Wikimedia Commons images governed by their licenses in `docs/oss_attribution.md`)*. **Antigravity** was used as an AI coding assistant during development.
