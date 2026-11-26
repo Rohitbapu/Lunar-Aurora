@@ -1,24 +1,72 @@
 using System;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 namespace LunarAurora.Editor
 {
+    /// <summary>
+    /// Automatically detects Sony's official SRDisplayUnityPlugin when imported from https://xyn.sony.net/,
+    /// sets the SRDISPLAY_SDK_PRESENT scripting define, wires SRDisplayManager & SRDisplayBox into MainKioskScene,
+    /// and compiles the 4K standalone executable for the Sony ELF-SR1.
+    /// </summary>
+    [InitializeOnLoad]
     public class BuildScript
     {
+        private const string SRD_DEFINE = "SRDISPLAY_SDK_PRESENT";
+
+        static BuildScript()
+        {
+            SyncSonySdkDefineSymbol();
+        }
+
+        [MenuItem("Lunar Aurora/Detect & Enable Sony SRDisplay SDK")]
+        public static void SyncSonySdkDefineSymbol()
+        {
+            bool hasSonyPlugin = AppDomain.CurrentDomain.GetAssemblies()
+                .Any(a => a.GetType("SRD.Core.SRDManager") != null || a.GetType("SRD.Core.SRDSceneEnvironment") != null);
+
+            var targetGroup = BuildTargetGroup.Standalone;
+            string currentDefines = PlayerSettings.GetScriptingDefineSymbolsForGroup(targetGroup);
+            bool hasDefine = currentDefines.Split(';').Contains(SRD_DEFINE);
+
+            if (hasSonyPlugin && !hasDefine)
+            {
+                string updated = string.IsNullOrEmpty(currentDefines) ? SRD_DEFINE : $"{currentDefines};{SRD_DEFINE}";
+                PlayerSettings.SetScriptingDefineSymbolsForGroup(targetGroup, updated);
+                Debug.Log("[LunarAurora] Sony SRDisplay SDK detected! Enabled SRDISPLAY_SDK_PRESENT.");
+            }
+            else if (!hasSonyPlugin && hasDefine)
+            {
+                var cleaned = string.Join(";", currentDefines.Split(';').Where(d => d != SRD_DEFINE && !string.IsNullOrEmpty(d)));
+                PlayerSettings.SetScriptingDefineSymbolsForGroup(targetGroup, cleaned);
+            }
+        }
+
+        [MenuItem("Lunar Aurora/Import Sony SRDisplay Package (.unitypackage)...")]
+        public static void ImportSonyPackageMenu()
+        {
+            string pkgPath = EditorUtility.OpenFilePanel("Select Sony srdisplay-unity-plugin.unitypackage", "", "unitypackage");
+            if (!string.IsNullOrEmpty(pkgPath))
+            {
+                AssetDatabase.ImportPackage(pkgPath, true);
+            }
+        }
+
         [MenuItem("Lunar Aurora/Build Sony SRDisplay Standalone EXE")]
         public static void BuildStandaloneWindows()
         {
-            Debug.Log("[BuildScript] Starting Standalone Windows Build for Sony Spatial Reality Display...");
+            Debug.Log("[BuildScript] Starting Standalone Windows Build for Sony Spatial Reality Display (ELF-SR1)...");
+            SyncSonySdkDefineSymbol();
 
             string buildDir = Path.Combine(Application.dataPath, "..", "Builds", "Windows_SonySRDisplay");
             Directory.CreateDirectory(buildDir);
 
             string exePath = Path.Combine(buildDir, "LunarAurora_Kiosk.exe");
 
-            // Configure Player Settings for Sony SRDisplay (4K Resolution, Desktop Fullscreen)
+            // Official Sony ELF-SR1 4K Display Player Settings
             PlayerSettings.defaultScreenWidth = 3840;
             PlayerSettings.defaultScreenHeight = 2160;
             PlayerSettings.fullScreenMode = FullScreenMode.FullScreenWindow;
@@ -26,18 +74,12 @@ namespace LunarAurora.Editor
             PlayerSettings.productName = "Lunar Aurora - Holographic Kiosk";
             PlayerSettings.companyName = "Lunar Aurora Team";
 
-            // Find or create default scene if not already set in build settings
-            string[] scenes = new string[] { "Assets/Scenes/MainKioskScene.unity" };
-            
-            // If scene doesn't exist on disk yet, create and save it
-            if (!File.Exists(scenes[0]))
-            {
-                CreateDefaultKioskScene(scenes[0]);
-            }
+            string scenePath = "Assets/Scenes/MainKioskScene.unity";
+            CreateDefaultKioskScene(scenePath);
 
             BuildPlayerOptions buildPlayerOptions = new BuildPlayerOptions
             {
-                scenes = scenes,
+                scenes = new string[] { scenePath },
                 locationPathName = exePath,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None
@@ -56,7 +98,7 @@ namespace LunarAurora.Editor
             }
         }
 
-        [MenuItem("Lunar Aurora/Generate Kiosk Scene")]
+        [MenuItem("Lunar Aurora/Generate & Wire Sony Kiosk Scene")]
         public static void GenerateSceneMenu()
         {
             CreateDefaultKioskScene("Assets/Scenes/MainKioskScene.unity");
@@ -65,64 +107,93 @@ namespace LunarAurora.Editor
         private static void CreateDefaultKioskScene(string scenePath)
         {
             var scene = UnityEditor.SceneManagement.EditorSceneManager.NewScene(
-                UnityEditor.SceneManagement.NewSceneSetup.EmptyScene, 
+                UnityEditor.SceneManagement.NewSceneSetup.EmptyScene,
                 UnityEditor.SceneManagement.NewSceneMode.Single
             );
 
-            // 1. Camera & SRDisplay Rig
+            // 1. Sony SRDisplay SDK Prefabs (auto-wired if imported from Sony XYN portal)
+            GameObject watcherTarget = null;
+            string[] srdManagerGuids = AssetDatabase.FindAssets("SRDisplayManager t:Prefab");
+            if (srdManagerGuids.Length > 0)
+            {
+                string prefabPath = AssetDatabase.GUIDToAssetPath(srdManagerGuids[0]);
+                GameObject srdPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (srdPrefab != null)
+                {
+                    GameObject srdInstance = (GameObject)PrefabUtility.InstantiatePrefab(srdPrefab);
+                    srdInstance.name = "SRDisplayManager";
+                    Transform anchor = srdInstance.transform.Find("WatcherAnchor");
+                    if (anchor != null) watcherTarget = anchor.gameObject;
+                    Debug.Log($"[BuildScript] Wired official Sony prefab: {prefabPath}");
+                }
+            }
+
+            string[] srdBoxGuids = AssetDatabase.FindAssets("SRDisplayBox t:Prefab");
+            if (srdBoxGuids.Length > 0)
+            {
+                string boxPath = AssetDatabase.GUIDToAssetPath(srdBoxGuids[0]);
+                GameObject boxPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(boxPath);
+                if (boxPrefab != null)
+                {
+                    GameObject boxInstance = (GameObject)PrefabUtility.InstantiatePrefab(boxPrefab);
+                    boxInstance.name = "SRDisplayBox";
+                }
+            }
+
+            // 2. Fallback Camera + SRDisplayViewerController (auto-disabled if SRDisplayManager is active)
             GameObject camObj = new GameObject("SRDisplayCameraRig");
             Camera cam = camObj.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.02f, 0.04f, 0.08f, 1f);
-            cam.transform.position = new Vector3(0, 0, -0.45f);
+            cam.backgroundColor = new Color(0.015f, 0.025f, 0.055f, 1f);
+            cam.transform.position = new Vector3(0, 0.05f, -0.45f);
             cam.transform.LookAt(Vector3.zero);
             camObj.AddComponent<AudioListener>();
             var srController = camObj.AddComponent<LunarAurora.Kiosk.SRDisplayViewerController>();
-            srController.mainHoloCamera = cam;
+            srController.fallbackHoloCamera = cam;
+            if (watcherTarget != null) srController.watcherTargetTransform = watcherTarget.transform;
 
-            // 2. Solstice Lighting
+            // 3. Solstice Lighting
             GameObject lightObj = new GameObject("SolsticeSunLight");
             Light sun = lightObj.AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.color = new Color(1f, 0.96f, 0.85f);
-            sun.intensity = 1.3f;
+            sun.color = new Color(1f, 0.95f, 0.82f);
+            sun.intensity = 1.45f;
             lightObj.transform.rotation = Quaternion.Euler(50f, -30f, 0);
 
-            // Ambient Rim Light
-            GameObject rimObj = new GameObject("CyanRimLight");
+            GameObject rimObj = new GameObject("CyanHoloRimLight");
             Light rim = rimObj.AddComponent<Light>();
             rim.type = LightType.Point;
             rim.color = new Color(0f, 0.9f, 1f);
             rim.intensity = 1.8f;
-            rim.range = 3f;
-            rimObj.transform.position = new Vector3(-0.3f, 0.3f, 0.2f);
+            rim.range = 2.5f;
+            rimObj.transform.position = new Vector3(-0.25f, 0.25f, 0.2f);
 
-            // 3. Holographic Monument
+            // 4. Holographic Monument Showcase (centered inside ELF-SR1 0.35m x 0.20m x 0.20m prism)
             GameObject monumentObj = new GameObject("HolographicMonument");
             var monumentPreview = monumentObj.AddComponent<LunarAurora.Kiosk.HolographicMonumentPreview>();
             monumentPreview.directionalSunLight = sun;
 
-            // 4. Holographic Avatar Guide
+            // 5. Holographic Avatar Guide (tracks visitor's eye position via WatcherAnchor)
             GameObject avatarObj = new GameObject("KioskAvatarGuide");
-            avatarObj.transform.position = new Vector3(0.2f, -0.05f, 0f);
+            avatarObj.transform.position = new Vector3(0.135f, -0.06f, -0.02f);
             var avatarGuide = avatarObj.AddComponent<LunarAurora.Kiosk.KioskAvatarGuide>();
+            if (watcherTarget != null) avatarGuide.visitorFaceTarget = watcherTarget.transform;
 
-            // 5. Backend Network Bridge
+            // 6. Backend Network Bridge
             GameObject bridgeObj = new GameObject("KioskNetworkBridge");
             var bridge = bridgeObj.AddComponent<LunarAurora.Kiosk.KioskNetworkBridge>();
 
-            // 6. UI Manager
+            // 7. UI Manager
             GameObject uiObj = new GameObject("KioskUIManager");
             var uiMgr = uiObj.AddComponent<LunarAurora.Kiosk.KioskUIManager>();
+            uiMgr.srDisplayController = srController;
             uiMgr.monumentPreview = monumentPreview;
             uiMgr.avatarGuide = avatarGuide;
             uiMgr.networkBridge = bridge;
 
-            // Save Scene
             Directory.CreateDirectory(Path.GetDirectoryName(scenePath));
             UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene, scenePath);
-            Debug.Log($"[BuildScript] Created default Sony SRDisplay scene at: {scenePath}");
+            Debug.Log($"[BuildScript] Saved Sony ELF-SR1 Kiosk scene at: {scenePath}");
         }
     }
 }
-

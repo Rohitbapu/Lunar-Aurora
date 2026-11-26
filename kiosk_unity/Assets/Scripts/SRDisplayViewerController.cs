@@ -1,89 +1,94 @@
 using System;
-using System.Collections;
 using UnityEngine;
+#if SRDISPLAY_SDK_PRESENT
+using SRD.Core;
+#endif
 
 namespace LunarAurora.Kiosk
 {
     /// <summary>
     /// Controller for Sony Spatial Reality Display (ELF-SR1 / ELF-SR2).
-    /// Manages glasses-free 3D holographic volume, eye-tracking bounds, and depth clipping.
+    /// Integrates directly with Sony's SRDManager & SRDisplayBox when SRDisplayUnityPlugin is imported,
+    /// and provides a calibrated 4K glasses-free parallax preview camera for standalone desktop testing.
     /// </summary>
     public class SRDisplayViewerController : MonoBehaviour
     {
-        [Header("Sony SRDisplay Holographic Box Settings")]
-        [Tooltip("Depth scale of the 3D projection box (ELF-SR1 standard volume is approx 0.35m x 0.20m x 0.20m)")]
+        [Header("Sony ELF-SR1 Holographic Box Bounds (Meters)")]
+        [Tooltip("Physical 15.6-inch ELF-SR1 volumetric projection space: ~0.35m W x 0.20m H x 0.20m D")]
         public Vector3 holographicBoxSize = new Vector3(0.35f, 0.20f, 0.20f);
-        
-        [Tooltip("Near clipping plane offset to prevent hologram breaking out past the physical glass")]
-        public float frontClippingOffset = 0.05f;
 
-        [Tooltip("Target focal distance in meters")]
+        [Tooltip("Front clipping safety margin so geometry stays cleanly inside the volumetric prism")]
+        public float frontClippingOffset = 0.04f;
+
+        [Tooltip("Nominal viewer distance in front of the 15.6-inch lenticular lens")]
         public float focalDistance = 0.45f;
 
-        [Header("Eye Tracking Status")]
-        public bool isEyeTracked = false;
-        public Vector3 currentFacePosition = new Vector3(0, 0, -0.45f);
-
-        [Header("Camera Rig References")]
-        public Camera mainHoloCamera;
-        public Camera leftEyeCamera;
-        public Camera rightEyeCamera;
+        [Header("Tracking & Camera References")]
+        public bool hardwareSdkActive = false;
+        public Camera fallbackHoloCamera;
+        public Transform watcherTargetTransform;
 
         void Awake()
         {
-            if (mainHoloCamera == null)
+#if SRDISPLAY_SDK_PRESENT
+            var srdManager = SRDSceneEnvironment.GetSRDManager();
+            if (srdManager != null)
             {
-                mainHoloCamera = Camera.main;
-            }
-            ConfigureHolographicViewport();
-        }
+                hardwareSdkActive = true;
+                if (fallbackHoloCamera != null) fallbackHoloCamera.gameObject.SetActive(false);
 
-        void Start()
-        {
-            Debug.Log("[SRDisplayViewerController] Initialized Sony Spatial Reality Display Kiosk Manager.");
+                Transform watcher = srdManager.transform.Find("WatcherAnchor");
+                if (watcher != null) watcherTargetTransform = watcher;
+
+                Debug.Log("[SRDisplayViewerController] Sony SRDisplay SDK hardware tracking active.");
+                return;
+            }
+#endif
+            hardwareSdkActive = false;
+            if (fallbackHoloCamera == null)
+            {
+                fallbackHoloCamera = Camera.main;
+            }
+            ConfigureFallbackViewport();
         }
 
         void Update()
         {
-            // Simulate / update face tracking parallax when testing on desktop or using Sony eye sensor
-            UpdateEyeTrackingParallax();
-        }
+            if (hardwareSdkActive) return;
 
-        void ConfigureHolographicViewport()
-        {
-            if (mainHoloCamera != null)
+            // Gentle breathing eye-parallax simulation when running on a standard monitor without ELF-SR1 hardware
+            float t = Time.time;
+            float simEyeX = Mathf.Sin(t * 0.65f) * 0.035f;
+            float simEyeY = Mathf.Cos(t * 0.50f) * 0.015f;
+
+            if (fallbackHoloCamera != null)
             {
-                mainHoloCamera.nearClipPlane = Mathf.Max(0.01f, focalDistance - holographicBoxSize.z * 0.5f - frontClippingOffset);
-                mainHoloCamera.farClipPlane = focalDistance + holographicBoxSize.z * 0.5f + 1.0f;
-                mainHoloCamera.fieldOfView = 45f;
+                Vector3 basePos = new Vector3(0f, 0.05f, -focalDistance);
+                fallbackHoloCamera.transform.position = basePos + new Vector3(simEyeX, simEyeY, 0f);
+                fallbackHoloCamera.transform.LookAt(new Vector3(0f, 0.02f, 0f));
+
+                if (watcherTargetTransform != null)
+                {
+                    watcherTargetTransform.position = fallbackHoloCamera.transform.position;
+                }
             }
         }
 
-        void UpdateEyeTrackingParallax()
+        void ConfigureFallbackViewport()
         {
-            // On desktop test mode without Sony ELF-SR1 connected, provide subtle gentle parallax rotation
-            // On real Sony device, the Sony SRDisplay SDK plugin overrides eye position directly via native plugin
-            float t = Time.time;
-            float simulatedEyeX = Mathf.Sin(t * 0.8f) * 0.04f;
-            float simulatedEyeY = Mathf.Cos(t * 0.6f) * 0.02f;
-
-            if (mainHoloCamera != null)
+            if (fallbackHoloCamera != null)
             {
-                Vector3 basePos = new Vector3(0, 0, -focalDistance);
-                mainHoloCamera.transform.position = basePos + new Vector3(simulatedEyeX, simulatedEyeY, 0);
-                mainHoloCamera.transform.LookAt(Vector3.zero);
+                fallbackHoloCamera.nearClipPlane = Mathf.Max(0.02f, focalDistance - holographicBoxSize.z * 0.5f - frontClippingOffset);
+                fallbackHoloCamera.farClipPlane = focalDistance + holographicBoxSize.z * 0.5f + 2.0f;
+                fallbackHoloCamera.fieldOfView = 36f;
             }
         }
 
         void OnDrawGizmos()
         {
-            // Draw holographic viewing frustum and volume box in Unity Scene view
-            Gizmos.color = new Color(0f, 0.9f, 1f, 0.4f);
+            // Draw Sony ELF-SR1 15.6" physical volumetric prism gizmo in Scene View
+            Gizmos.color = hardwareSdkActive ? new Color(0f, 1f, 0.5f, 0.6f) : new Color(0f, 0.9f, 1f, 0.45f);
             Gizmos.DrawWireCube(Vector3.zero, holographicBoxSize);
-
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(currentFacePosition, 0.04f);
         }
     }
 }
-
