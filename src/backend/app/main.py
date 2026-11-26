@@ -44,6 +44,10 @@ app.mount("/static/audio", StaticFiles(directory=settings.AUDIO_CACHE_DIR), name
 app.mount("/static/audio_cache", StaticFiles(directory=settings.AUDIO_PRECACHE_DIR), name="static_audio_cache")
 app.mount("/static/photos", StaticFiles(directory=settings.PHOTOS_DIR), name="static_photos")
 
+cards_img_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "carving_cards", "images"))
+if os.path.exists(cards_img_dir):
+    app.mount("/static/cards", StaticFiles(directory=cards_img_dir), name="static_cards")
+
 # Mount frontend_webxr as static web application
 webxr_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend_webxr"))
 if os.path.exists(webxr_dir):

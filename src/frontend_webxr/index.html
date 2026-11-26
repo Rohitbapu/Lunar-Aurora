@@ -87,21 +87,45 @@
     <!-- Subtle Center Focus Reticle -->
     <div class="point-know-crosshair" id="hud-crosshair"></div>
 
-    <!-- ON-DEMAND 3D ERA RECONSTRUCTION SLIDER (Hidden while walking; opens on Scan) -->
+    <!-- ON-DEMAND 3D ERA RECONSTRUCTION SLIDER (Only shown for shore_temple_vimana Illustrative model) -->
     <div id="era-reconstruction-panel" class="era-panel" style="display: none;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
         <div style="font-size: 0.8rem; font-weight: 700; color: #00e5ff;">
-          <i class="fa-solid fa-cubes"></i> <span id="era-model-title">700 CE Pallava Reconstruction</span>
+          <i class="fa-solid fa-cubes"></i> <span id="era-model-title">Illustrative model</span>
           <span id="era-model-latency" style="color: #00e676; font-size: 0.7rem; margin-left: 6px;"></span>
         </div>
         <button id="btn-close-era-panel" class="era-close-btn" title="Dismiss 3D Model">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
+      <div style="font-size: 0.68rem; color: #ffca28; margin-bottom: 5px;">
+        Illustrative placeholder geometry — not an archaeological 3D scan.
+      </div>
       <div style="display: flex; align-items: center; gap: 10px; font-size: 0.72rem; color: #cfd8dc;">
-        <span>Present Ruin</span>
+        <span>Wireframe</span>
         <input type="range" id="era-slider-input" min="0" max="100" value="100" style="flex: 1; accent-color: #f4c430;">
-        <span style="color: #f4c430; font-weight: 700;">700 CE Zenith</span>
+        <span style="color: #f4c430; font-weight: 700;">Solid</span>
+      </div>
+    </div>
+
+    <!-- PHOTO + VERIFIED FACTS PANEL (For classes without an accurate 3D model) -->
+    <div id="relic-info-panel" class="era-panel" style="display: none; border-color: #00e5ff;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <div style="font-size: 0.82rem; font-weight: 700; color: #f4c430;">
+          <i class="fa-solid fa-image"></i> <span id="relic-info-title">Mahabalipuram Monument</span>
+          <span id="relic-info-latency" style="color: #00e676; font-size: 0.7rem; margin-left: 6px;"></span>
+        </div>
+        <button id="btn-close-relic-info" class="era-close-btn" title="Dismiss Info Card">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: flex-start;">
+        <img id="relic-info-photo" src="" alt="Monument photo" style="width: 92px; height: 68px; object-fit: cover; border-radius: 8px; border: 1px solid #00e5ff; flex-shrink: 0; display: none;">
+        <div style="font-size: 0.72rem; color: #e0f7fa; line-height: 1.38;">
+          <div id="relic-info-meta" style="color: #00e5ff; font-weight: 600; margin-bottom: 3px;"></div>
+          <div id="relic-info-story" style="color: #cfd8dc;"></div>
+          <a id="relic-info-source" href="#" target="_blank" rel="noopener" style="color: #f4c430; font-size: 0.68rem; display: inline-block; margin-top: 4px; text-decoration: underline;">View Source Reference</a>
+        </div>
       </div>
     </div>
 
@@ -153,13 +177,13 @@
         </button>
       </div>
       <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
-        <button class="demo-stop-btn" data-step="1">S1 Gate</button>
-        <button class="demo-stop-btn" data-step="2">S2 Yali</button>
-        <button class="demo-stop-btn" data-step="3">S3 Wheel</button>
-        <button class="demo-stop-btn" data-step="4">S4 Vimana</button>
-        <button class="demo-stop-btn" data-step="5">S5 Lotus</button>
-        <button class="demo-stop-btn" data-step="6">S6 Banyan</button>
-        <button class="demo-stop-btn" data-step="7">S7 Sunset</button>
+        <button class="demo-stop-btn" data-step="1">S1 Coast</button>
+        <button class="demo-stop-btn" data-step="2">S2 Shore</button>
+        <button class="demo-stop-btn" data-step="3">S3 Rathas</button>
+        <button class="demo-stop-btn" data-step="4">S4 Penance</button>
+        <button class="demo-stop-btn" data-step="5">S5 Boulder</button>
+        <button class="demo-stop-btn" data-step="6">S6 Varaha</button>
+        <button class="demo-stop-btn" data-step="7">S7 Durga</button>
       </div>
       <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: #b0bec5;">
         <span>Sun: <strong id="demo-hour-label" style="color:#f4c430;">13:00</strong></span>

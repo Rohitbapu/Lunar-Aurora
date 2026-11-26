@@ -2,136 +2,207 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Lunar Aurora - Printable Mahabalipuram Carving Cards (Matte Edition)</title>
+  <title>Lunar Aurora — Authentic Mahabalipuram Carving Cards (A4 Print Front & Back)</title>
   <style>
-    * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-    body { margin: 0; padding: 20px; background: #f2f4f7; color: #111827; }
-    h1 { font-size: 18px; margin-bottom: 4px; }
-    p.sub { font-size: 12px; color: #4b5563; margin-top: 0; margin-bottom: 18px; }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 900px; margin: 0 auto; }
-    .card {
-      background: #fffdf9;
-      border: 3px solid #1f2937;
-      border-radius: 12px;
-      padding: 16px;
-      page-break-inside: avoid;
+    @page { size: A4 portrait; margin: 10mm; }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { margin: 0; padding: 12px; background: #f4f4f0; color: #111827; }
+    .screen-note { max-width: 190mm; margin: 0 auto 10px; font-size: 11px; color: #374151; }
+    .sheet {
+      width: 190mm;
+      margin: 0 auto 12mm;
+      background: #ffffff;
+      padding: 6mm;
+      border: 1px solid #d1d5db;
+    }
+    .sheet-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #4b5563;
+      margin: 0 0 5mm;
+    }
+    .grid-front, .grid-back {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6mm;
+    }
+    .card-front, .card-back {
+      border: 1.5px solid #1f2937;
+      border-radius: 4mm;
+      background: #fdfcf8; /* Warm matte-friendly paper tint */
+      overflow: hidden;
+      height: 80mm;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      min-height: 310px;
+      page-break-inside: avoid;
     }
-    .hdr { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #d1d5db; padding-bottom: 6px; }
-    .code { font-family: monospace; font-weight: 800; font-size: 12px; background: #111827; color: #facc15; padding: 3px 8px; border-radius: 6px; }
-    .title { font-size: 15px; font-weight: 800; margin: 8px 0 4px; }
-    .era { font-size: 11px; color: #0f766e; font-weight: 700; }
-    .art { display: flex; justify-content: center; align-items: center; padding: 10px 0; }
-    .ftr { border-top: 1px dashed #9ca3af; padding-top: 6px; font-size: 11px; color: #374151; }
+    .code-strip {
+      background: #111827;
+      color: #facc15;
+      font-family: monospace;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 2mm 3.5mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .photo-box {
+      flex: 1;
+      width: 100%;
+      overflow: hidden;
+      background: #e5e7eb;
+    }
+    .photo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .card-back {
+      padding: 4.5mm;
+      justify-content: space-between;
+      font-size: 9.5px;
+      line-height: 1.38;
+    }
+    .back-title { font-size: 12px; font-weight: 800; color: #111827; margin-bottom: 2mm; }
+    .back-meta div { margin-bottom: 1.2mm; word-break: break-word; }
+    .sa-notice {
+      background: #fef3c7;
+      border: 1px solid #d97706;
+      color: #78350f;
+      padding: 2mm 2.5mm;
+      border-radius: 2mm;
+      font-size: 8.5px;
+      font-weight: 600;
+    }
+    .url-small { font-family: monospace; font-size: 7.8px; color: #1d4ed8; }
+    .page-break { page-break-after: always; }
     @media print {
-      body { background: #ffffff; padding: 8px; }
-      .no-print { display: none; }
+      body { background: #ffffff; padding: 0; }
+      .screen-note { display: none; }
+      .sheet { border: none; margin: 0; padding: 0; width: 100%; }
     }
   </style>
 </head>
 <body>
-  <div style="max-width: 900px; margin: 0 auto;">
-    <h1>Lunar Aurora — Mahabalipuram Printable Carving Cards (5 Classes)</h1>
-    <p class="sub">Print on <strong>Matte uncoated cardstock (250+ GSM)</strong> to prevent specular glare during tabletop camera demos. Each card maps directly to a registered 3D glTF reconstruction &amp; offline audio narrative.</p>
+  <div class="screen-note">
+    <strong>A4 Duplex Matte Printing Guide:</strong> Print on heavyweight uncoated matte cardstock (250+ GSM) to avoid glare. Page 1 = Clean Card Fronts (photo + code only, zero text over the photo). Page 2 = Mirrored Attribution Backs (mirror horizontally in horizontal row pairs if printing duplex, or print two-sided flip on long edge — columns on Page 2 are swapped L&harr;R so backs align behind fronts!). See <code>images/LICENSE-NOTICE.md</code>.
   </div>
 
-  <div class="grid">
-    <!-- CARD 1 -->
-    <div class="card">
-      <div class="hdr"><span class="code">LUNA-CARD-01</span><span class="era">STOPS 1 &amp; 4 • 700 CE</span></div>
-      <div>
-        <div class="title">Rajasimhesvara Shore Vimana</div>
-        <div class="art">
-          <svg width="160" height="145" viewBox="0 0 160 145">
-            <rect x="20" y="118" width="120" height="16" fill="#1e293b"/>
-            <rect x="34" y="96" width="92" height="22" fill="#334155"/>
-            <rect x="46" y="76" width="68" height="20" fill="#475569"/>
-            <rect x="58" y="58" width="44" height="18" fill="#64748b"/>
-            <polygon points="80,18 96,58 64,58" fill="#d97706"/>
-            <circle cx="80" cy="14" r="5" fill="#facc15"/>
-          </svg>
-        </div>
+  <!-- PAGE 1: FRONT (Clean photo + code strip outside the photo only) -->
+  <div class="sheet page-break">
+    <div class="sheet-title">Page 1 — Carving Card Fronts (Mahabalipuram UNESCO Monuments)</div>
+    <div class="grid-front">
+      <div class="card-front">
+        <div class="code-strip"><span>LUNA-CARD-01</span><span>shore_temple_vimana</span></div>
+        <div class="photo-box"><img src="images/01_shore_temple_vimana.jpg" alt="LUNA-CARD-01"></div>
       </div>
-      <div class="ftr">Class ID: <code>shore_temple_vimana</code> • Model: <code>Grand_Solstice_Sun_Temple.glb</code></div>
-    </div>
 
-    <!-- CARD 2 -->
-    <div class="card">
-      <div class="hdr"><span class="code">LUNA-CARD-02</span><span class="era">STOPS 3 &amp; 7 • 712 CE</span></div>
-      <div>
-        <div class="title">Solar Chariot Wheel &amp; Gnomon</div>
-        <div class="art">
-          <svg width="150" height="145" viewBox="0 0 150 145">
-            <circle cx="75" cy="72" r="52" fill="none" stroke="#b45309" stroke-width="8"/>
-            <circle cx="75" cy="72" r="14" fill="#1e293b"/>
-            <line x1="75" y1="20" x2="75" y2="124" stroke="#1e293b" stroke-width="3"/>
-            <line x1="23" y1="72" x2="127" y2="72" stroke="#1e293b" stroke-width="3"/>
-            <line x1="38" y1="35" x2="112" y2="109" stroke="#1e293b" stroke-width="3"/>
-            <line x1="112" y1="35" x2="38" y2="109" stroke="#1e293b" stroke-width="3"/>
-            <circle cx="75" cy="72" r="5" fill="#facc15"/>
-          </svg>
-        </div>
+      <div class="card-front">
+        <div class="code-strip"><span>LUNA-CARD-02</span><span>pancha_rathas</span></div>
+        <div class="photo-box"><img src="images/02_pancha_rathas.jpg" alt="LUNA-CARD-02"></div>
       </div>
-      <div class="ftr">Class ID: <code>chariot_wheel</code> • Model: <code>Solstitial_Lotus_Gnomon.glb</code></div>
-    </div>
 
-    <!-- CARD 3 -->
-    <div class="card">
-      <div class="hdr"><span class="code">LUNA-CARD-03</span><span class="era">STOP 2 • 705 CE</span></div>
-      <div>
-        <div class="title">Monolithic Roaring Yali Pillar</div>
-        <div class="art">
-          <svg width="150" height="145" viewBox="0 0 150 145">
-            <rect x="45" y="18" width="60" height="14" fill="#0f766e"/>
-            <rect x="58" y="32" width="34" height="68" fill="#334155"/>
-            <circle cx="75" cy="64" r="16" fill="#d97706"/>
-            <circle cx="70" cy="60" r="3" fill="#fff"/>
-            <circle cx="80" cy="60" r="3" fill="#fff"/>
-            <rect x="35" y="100" width="80" height="24" fill="#1e293b"/>
-          </svg>
-        </div>
+      <div class="card-front">
+        <div class="code-strip"><span>LUNA-CARD-03</span><span>arjunas_penance</span></div>
+        <div class="photo-box"><img src="images/03_arjunas_penance.jpg" alt="LUNA-CARD-03"></div>
       </div>
-      <div class="ftr">Class ID: <code>yali_pillar</code> • Model: <code>Celestial_Airavata_Sculpture.glb</code></div>
-    </div>
 
-    <!-- CARD 4 -->
-    <div class="card">
-      <div class="hdr"><span class="code">LUNA-CARD-04</span><span class="era">STOP 6 • 725 CE</span></div>
-      <div>
-        <div class="title">Cosmic Nataraja Sanctuary Frieze</div>
-        <div class="art">
-          <svg width="150" height="145" viewBox="0 0 150 145">
-            <circle cx="75" cy="70" r="46" fill="none" stroke="#dc2626" stroke-width="5" stroke-dasharray="6,4"/>
-            <circle cx="75" cy="48" r="11" fill="#1e293b"/>
-            <line x1="75" y1="59" x2="75" y2="92" stroke="#1e293b" stroke-width="6"/>
-            <line x1="42" y1="62" x2="108" y2="62" stroke="#1e293b" stroke-width="4"/>
-            <line x1="75" y1="92" x2="56" y2="115" stroke="#1e293b" stroke-width="5"/>
-            <line x1="75" y1="92" x2="96" y2="102" stroke="#1e293b" stroke-width="5"/>
-          </svg>
-        </div>
+      <div class="card-front">
+        <div class="code-strip"><span>LUNA-CARD-04</span><span>krishnas_butter_ball</span></div>
+        <div class="photo-box"><img src="images/04_krishnas_butter_ball.jpg" alt="LUNA-CARD-04"></div>
       </div>
-      <div class="ftr">Class ID: <code>nataraja_relief</code> • Model: <code>Celestial_Airavata_Sculpture.glb</code></div>
-    </div>
 
-    <!-- CARD 5 -->
-    <div class="card">
-      <div class="hdr"><span class="code">LUNA-CARD-05</span><span class="era">STOP 5 • 720 CE</span></div>
-      <div>
-        <div class="title">Royal Lotus Hydraulic Cistern</div>
-        <div class="art">
-          <svg width="160" height="145" viewBox="0 0 160 145">
-            <ellipse cx="80" cy="94" rx="58" ry="22" fill="#0284c7" stroke="#1e293b" stroke-width="4"/>
-            <ellipse cx="80" cy="88" rx="44" ry="15" fill="#38bdf8"/>
-            <polygon points="80,38 96,78 64,78" fill="#f59e0b"/>
-            <polygon points="56,52 78,80 54,82" fill="#fbbf24"/>
-            <polygon points="104,52 82,80 106,82" fill="#fbbf24"/>
-          </svg>
+      <div class="card-front">
+        <div class="code-strip"><span>LUNA-CARD-05</span><span>mahishasuramardini_cave</span></div>
+        <div class="photo-box"><img src="images/05_mahishasuramardini_cave.jpg" alt="LUNA-CARD-05"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: BACK (Mirrored left/right per row for duplex alignment) -->
+  <div class="sheet">
+    <div class="sheet-title">Page 2 — Carving Card Backs (Wikimedia Commons Attribution &amp; Licenses)</div>
+    <div class="grid-back">
+      <!-- Row 1 Right aligns behind Front Row 1 Left (Card 02 on left, Card 01 on right for duplex flip) -->
+      <div class="card-back">
+        <div>
+          <div class="code-strip" style="margin:-4.5mm -4.5mm 3mm;"><span>LUNA-CARD-02 (BACK)</span><span>pancha_rathas</span></div>
+          <div class="back-title">Pancha Rathas, Mahabalipuram</div>
+          <div class="back-meta">
+            <div><strong>Author:</strong> Vyacheslav Argenberg</div>
+            <div><strong>License:</strong> CC BY 4.0</div>
+            <div><strong>Source:</strong> <span class="url-small">https://commons.wikimedia.org/wiki/File:Mahabalipuram,_Pancha_Rathas,_India.jpg</span></div>
+          </div>
+        </div>
+        <div style="font-size:8px; color:#4b5563;">Not covered by repository MIT license. Attribution required under CC BY 4.0.</div>
+      </div>
+
+      <div class="card-back">
+        <div>
+          <div class="code-strip" style="margin:-4.5mm -4.5mm 3mm;"><span>LUNA-CARD-01 (BACK)</span><span>shore_temple_vimana</span></div>
+          <div class="back-title">Shore Temple, Mahabalipuram</div>
+          <div class="back-meta">
+            <div><strong>Author:</strong> xiquinhosilva</div>
+            <div><strong>License:</strong> CC BY 4.0</div>
+            <div><strong>Source:</strong> <span class="url-small">https://commons.wikimedia.org/wiki/File:Mahabalipuram_-_55439857496.jpg</span></div>
+          </div>
+        </div>
+        <div style="font-size:8px; color:#4b5563;">Not covered by repository MIT license. Attribution required under CC BY 4.0.</div>
+      </div>
+
+      <!-- Row 2: Card 04 behind Front Card 04 (Right -> Left), Card 03 behind Front Card 03 -->
+      <div class="card-back">
+        <div>
+          <div class="code-strip" style="margin:-4.5mm -4.5mm 3mm;"><span>LUNA-CARD-04 (BACK)</span><span>krishnas_butter_ball</span></div>
+          <div class="back-title">Krishna's Butterball, Mahabalipuram</div>
+          <div class="back-meta">
+            <div><strong>Author:</strong> McKay Savage</div>
+            <div><strong>License:</strong> CC BY 2.0</div>
+            <div><strong>Source:</strong> <span class="url-small">https://commons.wikimedia.org/wiki/File:India_-_Temples_%26_Towers_-_019_-_Mamallapuram_-_Krishna%27s_Butterball.jpg</span></div>
+          </div>
+        </div>
+        <div style="font-size:8px; color:#4b5563;">Not covered by repository MIT license. Attribution required under CC BY 2.0.</div>
+      </div>
+
+      <div class="card-back">
+        <div>
+          <div class="code-strip" style="margin:-4.5mm -4.5mm 3mm;"><span>LUNA-CARD-03 (BACK)</span><span>arjunas_penance</span></div>
+          <div class="back-title">Arjuna's Penance (Descent of the Ganges), Mahabalipuram</div>
+          <div class="back-meta">
+            <div><strong>Author:</strong> Deepak2885</div>
+            <div><strong>License:</strong> CC BY-SA 4.0</div>
+            <div><strong>Source:</strong> <span class="url-small">https://commons.wikimedia.org/wiki/File:Arjuna%E2%80%99s_Penance-Mamallapuram-unesco.jpg</span></div>
+          </div>
+        </div>
+        <div class="sa-notice">
+          <strong>CC BY-SA 4.0 Notice:</strong> This photograph is licensed under Creative Commons Attribution-ShareAlike 4.0 International. Any adaptations or derivatives must be distributed under CC BY-SA 4.0 or a compatible license.
         </div>
       </div>
-      <div class="ftr">Class ID: <code>lotus_basin</code> • Model: <code>Solstitial_Lotus_Gnomon.glb</code></div>
+
+      <!-- Row 3: Empty spacer on Left so Card 05 Back aligns behind Front Row 3 Left on duplex flip -->
+      <div class="card-back" style="border-style:dashed; border-color:#d1d5db; justify-content:center; align-items:center; color:#9ca3af; font-size:9px;">
+        (Duplex Alignment Spacer)
+      </div>
+
+      <div class="card-back">
+        <div>
+          <div class="code-strip" style="margin:-4.5mm -4.5mm 3mm;"><span>LUNA-CARD-05 (BACK)</span><span>mahishasuramardini_cave</span></div>
+          <div class="back-title">Mahishasuramardini Cave Temple Panel, Mahabalipuram</div>
+          <div class="back-meta">
+            <div><strong>Author:</strong> Rainer Halama</div>
+            <div><strong>License:</strong> CC BY-SA 4.0</div>
+            <div><strong>Source:</strong> <span class="url-small">https://commons.wikimedia.org/wiki/File:Mahabalipuram-Mahishasuramardini_Cave_Temple-WUS01941.jpg</span></div>
+          </div>
+        </div>
+        <div class="sa-notice">
+          <strong>CC BY-SA 4.0 Notice:</strong> This photograph is licensed under Creative Commons Attribution-ShareAlike 4.0 International. Any adaptations or derivatives must be distributed under CC BY-SA 4.0 or a compatible license.
+        </div>
+      </div>
     </div>
   </div>
 </body>

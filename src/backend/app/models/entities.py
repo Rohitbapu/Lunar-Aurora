@@ -12,9 +12,10 @@ class POINode(Base):
     name = Column(String(128), nullable=False)
     category = Column(String(64), default="monument")
     description = Column(Text, nullable=False)
-    historical_era = Column(String(64), default="8th Century CE Pallava Dynasty")
+    historical_era = Column(String(64), default="7th-8th century CE Pallava Dynasty")
+    source = Column(String(512), nullable=True)
 
-    # Local coordinate frame (meters from Shore Temple entry) and GPS
+    # Local courtyard geometry (meters) and Mahabalipuram coordinates
     x = Column(Float, nullable=False)
     y = Column(Float, nullable=False)
     z = Column(Float, default=0.0)
@@ -24,7 +25,7 @@ class POINode(Base):
     has_benches = Column(Boolean, default=False)
     has_water = Column(Boolean, default=False)
     has_tree_shade = Column(Boolean, default=False)
-    average_ambient_temp_c = Column(Float, default=33.5)
+    average_ambient_temp_c = Column(Float, default=32.0)
 
     model_asset_url = Column(String(256), nullable=True)
     audio_story_url = Column(String(256), nullable=True)
@@ -49,10 +50,11 @@ class RelicArtifact(Base):
     poi_id = Column(Integer, ForeignKey("poi_nodes.id"), nullable=True)
     detection_labels = Column(JSON, default=list)
     architectural_style = Column(String(128), default="Pallava Dravidian Granite")
-    period = Column(String(64), default="700–728 CE")
+    period = Column(String(64), default="7th-8th century CE")
     story = Column(Text, nullable=False)
     fun_fact = Column(Text, nullable=True)
     audio_narrative = Column(Text, nullable=True)
+    source = Column(String(512), nullable=True)
 
 class ScavengerQuest(Base):
     __tablename__ = "scavenger_quests"
@@ -67,6 +69,7 @@ class ScavengerQuest(Base):
     badge_name = Column(String(128), nullable=False)
     badge_icon = Column(String(64), default="fa-trophy")
     points = Column(Integer, default=100)
+    source = Column(String(512), nullable=True)
 
 class BlueprintStop(Base):
     __tablename__ = "blueprint_stops"
@@ -76,7 +79,7 @@ class BlueprintStop(Base):
     poi_id = Column(Integer, ForeignKey("poi_nodes.id"), nullable=False)
     title = Column(String(128), nullable=False)
     subtitle = Column(String(128), nullable=False)
-    era = Column(String(64), default="8th Century CE")
+    era = Column(String(64), default="7th-8th century CE")
     script_welcome = Column(Text, nullable=False)
     script_details = Column(Text, nullable=False)
     next_step_guidance = Column(Text, nullable=False)
@@ -86,10 +89,10 @@ class BlueprintStop(Base):
     target_relic_code = Column(String(64), nullable=True)
     badge_reward = Column(String(64), nullable=True)
     xp_reward = Column(Integer, default=50)
-    # Per-stop interactive riddle
     riddle_question = Column(Text, nullable=True)
     riddle_options = Column(JSON, default=list)
     riddle_answer = Column(String(128), nullable=True)
+    source = Column(String(512), nullable=True)
 
 class TourSession(Base):
     __tablename__ = "tour_sessions"

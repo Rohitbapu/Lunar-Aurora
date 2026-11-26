@@ -194,6 +194,12 @@ function setupUI() {
       if (window.arScene) window.arScene.hideRelicModel();
     });
   }
+  const closeInfoBtn = document.getElementById('btn-close-relic-info');
+  if (closeInfoBtn) {
+    closeInfoBtn.addEventListener('click', () => {
+      document.getElementById('relic-info-panel').style.display = 'none';
+    });
+  }
 
   // Primary Bottom Dock actions
   const btnScanRelic = document.getElementById('btn-scan-relic');
@@ -308,9 +314,27 @@ function setupUI() {
 
 function openCurrentReconstruction(title = null, modelUrl = null, latencyMs = null) {
   const stopData = window.tourManager && window.tourManager.currentStopData;
-  const resolvedUrl = modelUrl || (stopData && stopData.model_asset_url) || '/app/assets/models/Grand_Solstice_Sun_Temple.glb';
-  const resolvedTitle = title || (stopData && stopData.title) || 'Shore Temple Reconstruction';
+  const resolvedUrl = modelUrl || (stopData && stopData.model_asset_url) || null;
+  const resolvedTitle = title || (stopData && stopData.title) || 'Mahabalipuram Monument';
 
+  const infoPanel = document.getElementById('relic-info-panel');
+  const eraPanel = document.getElementById('era-reconstruction-panel');
+
+  if (!resolvedUrl) {
+    if (eraPanel) eraPanel.style.display = 'none';
+    if (window.arScene) window.arScene.hideRelicModel();
+    showRelicPhotoInfoPanel({
+      name: resolvedTitle,
+      period: (stopData && stopData.era) || '7th-8th century CE',
+      style: (stopData && stopData.subtitle) || 'Mahabalipuram Heritage Monument',
+      story: (stopData && stopData.script_details) || 'No 3D mesh is available for this class yet; showing verified monument photo & documented notes.',
+      image_url: stopData && stopData.target_relic_code ? `/static/cards/0${stopData.target_relic_code === 'pancha_rathas' ? '2_pancha_rathas' : stopData.target_relic_code === 'arjunas_penance' ? '3_arjunas_penance' : stopData.target_relic_code === 'krishnas_butter_ball' ? '4_krishnas_butter_ball' : '5_mahishasuramardini_cave'}.jpg` : null,
+      source: stopData && stopData.source
+    }, latencyMs);
+    return;
+  }
+
+  if (infoPanel) infoPanel.style.display = 'none';
   if (window.arScene) {
     window.arScene.showRelicModel(resolvedUrl, resolvedTitle);
     const slider = document.getElementById('era-slider-input');
@@ -320,12 +344,41 @@ function openCurrentReconstruction(title = null, modelUrl = null, latencyMs = nu
     }
   }
 
-  const panel = document.getElementById('era-reconstruction-panel');
-  if (panel) {
-    document.getElementById('era-model-title').textContent = resolvedTitle;
+  if (eraPanel) {
+    document.getElementById('era-model-title').textContent = `Illustrative model: ${resolvedTitle}`;
     document.getElementById('era-model-latency').textContent = latencyMs ? `(${latencyMs} ms)` : '';
-    panel.style.display = 'block';
+    eraPanel.style.display = 'block';
   }
+}
+
+function showRelicPhotoInfoPanel(art, latencyMs = null) {
+  const panel = document.getElementById('relic-info-panel');
+  if (!panel || !art) return;
+  document.getElementById('relic-info-title').textContent = art.name || 'Mahabalipuram Monument';
+  document.getElementById('relic-info-latency').textContent = latencyMs ? `(${latencyMs} ms)` : '';
+  document.getElementById('relic-info-meta').textContent = [art.period, art.style].filter(Boolean).join(' • ');
+  document.getElementById('relic-info-story').textContent = art.story || '';
+
+  const imgEl = document.getElementById('relic-info-photo');
+  if (imgEl) {
+    if (art.image_url) {
+      imgEl.src = art.image_url;
+      imgEl.style.display = 'block';
+    } else {
+      imgEl.style.display = 'none';
+    }
+  }
+
+  const srcEl = document.getElementById('relic-info-source');
+  if (srcEl) {
+    if (art.source) {
+      srcEl.href = art.source;
+      srcEl.style.display = 'inline-block';
+    } else {
+      srcEl.style.display = 'none';
+    }
+  }
+  panel.style.display = 'block';
 }
 
 function setupVoiceMicButton() {
@@ -379,11 +432,10 @@ async function handleScanRelicClick() {
   const btn = document.getElementById('btn-scan-relic');
   if (btn) btn.style.transform = 'scale(0.95)';
   setTimeout(() => { if (btn) btn.style.transform = 'none'; }, 200);
-  showNotification("🔍 Scanning Pallava carving...");
   if (window.visionEngine) {
-    const result = await window.visionEngine.scanCurrentTarget();
-    if (!result) showNotification("Aim camera at a carving card and try again.");
+    return await window.visionEngine.scanCurrentTarget();
   }
+  return null;
 }
 
 async function checkSecurityAndCamera() {
@@ -414,8 +466,12 @@ async function requestCameraPermission() {
     if (banner) banner.style.display = 'none';
     if (window.visionEngine) {
       window.visionEngine.onArtifactIdentified = onArtifactIdentified;
+      window.visionEngine.onStatusChange = (status) => {
+        if (status === "Vision model not installed") {
+          showNotification("Vision model not installed");
+        }
+      };
       await window.visionEngine.init(videoElem, overlayCanvas);
-      window.visionEngine.startDetectionLoop();
     }
   } else {
     console.warn("[LunarAurora] Camera feed error:", result.reason);
@@ -544,7 +600,7 @@ async function submitChatMessage() {
         customer_name: tm ? tm.customerName : "Traveler",
         current_step: tm ? tm.currentStep : 1,
         session_id: tm ? tm.sessionId : null,
-        context_poi: tm && tm.currentStopData ? tm.currentStopData.title : "Shore Temple East Gopuram",
+        context_poi: tm && tm.currentStopData ? tm.currentStopData.title : "Shore Temple Complex",
         language: (tm && tm.language) || window.currentLanguage || 'en',
         generate_audio: true
       })
@@ -561,18 +617,21 @@ async function submitChatMessage() {
 
 function onArtifactIdentified(data) {
   const art = data.artifact;
-  showNotification(`✨ Identified: ${art.name}!`);
+  showNotification(`Identified: ${art.name}`);
   displaySubtitlesAndSpeak(art.name, '', `${art.story} ${art.fun_fact || ''}`, data.audio_url, true);
 
-  // Trigger 3D Architectural Reconstruction + Era Slider on relic lock
-  const modelMap = {
-    shore_temple_vimana: '/app/assets/models/Grand_Solstice_Sun_Temple.glb',
-    chariot_wheel: '/app/assets/models/Solstitial_Lotus_Gnomon.glb',
-    lotus_basin: '/app/assets/models/Solstitial_Lotus_Gnomon.glb',
-    yali_pillar: '/app/assets/models/Celestial_Airavata_Sculpture.glb',
-    nataraja_relief: '/app/assets/models/Celestial_Airavata_Sculpture.glb'
-  };
-  openCurrentReconstruction(art.name, modelMap[art.code] || null, data.inference_ms || 18);
+  // Only shore_temple_vimana shows the procedural Illustrative model; all other classes show verified photo + facts panel
+  const illustrativeUrl = art.code === 'shore_temple_vimana'
+    ? '/app/assets/models/Grand_Solstice_Sun_Temple.glb'
+    : null;
+  if (illustrativeUrl) {
+    openCurrentReconstruction(art.name, illustrativeUrl, data.inference_ms || null);
+  } else {
+    if (window.arScene) window.arScene.hideRelicModel();
+    const eraPanel = document.getElementById('era-reconstruction-panel');
+    if (eraPanel) eraPanel.style.display = 'none';
+    showRelicPhotoInfoPanel(art, data.inference_ms || null);
+  }
 
   if (data.session_progress && window.tourManager) {
     window.tourManager.totalXp = data.session_progress.total_xp;

@@ -21,15 +21,15 @@ class LocationTracker {
     this.userSiteX = 0;
     this.userSiteY = 0;
 
-    // Authentic 7-Stop Mahabalipuram Shore Temple coordinates
+    // Authentic 7-Stop Mahabalipuram monuments coordinates
     this.stopsReference = [
-      { step: 1, name: "Shore Temple East Gopuram", x: 0, y: 0, lat: 12.6165, lon: 80.1993 },
-      { step: 2, name: "Monolithic Yali Pillars Gallery", x: 25, y: 40, lat: 12.6169, lon: 80.1995 },
-      { step: 3, name: "Chariot Wheel Solar Chronometer", x: 75, y: 85, lat: 12.6173, lon: 80.1999 },
-      { step: 4, name: "Rajasimhesvara Shore Vimana", x: 30, y: 110, lat: 12.6175, lon: 80.1994 },
-      { step: 5, name: "Royal Lotus Hydraulic Basin", x: -20, y: 120, lat: 12.6176, lon: 80.1989 },
-      { step: 6, name: "Arjuna's Penance Banyan Canopy", x: -40, y: 65, lat: 12.6171, lon: 80.1986 },
-      { step: 7, name: "Coromandel Sunset Bastion", x: 60, y: 140, lat: 12.6178, lon: 80.1997 }
+      { step: 1, name: "Shore Temple Coastal Entry", x: 0, y: 0, lat: 12.6165, lon: 80.1993 },
+      { step: 2, name: "Shore Temple Shrines", x: 25, y: 40, lat: 12.6168, lon: 80.1995 },
+      { step: 3, name: "Pancha Rathas Monolithic Complex", x: 75, y: 85, lat: 12.6090, lon: 80.1895 },
+      { step: 4, name: "Arjuna's Penance (Descent of the Ganges)", x: 30, y: 110, lat: 12.6177, lon: 80.1928 },
+      { step: 5, name: "Krishna's Butterball (Vaan Irai Kal)", x: -20, y: 120, lat: 12.6191, lon: 80.1924 },
+      { step: 6, name: "Varaha Cave Temple", x: -40, y: 65, lat: 12.6184, lon: 80.1920 },
+      { step: 7, name: "Mahishasuramardini Mandapa", x: 60, y: 140, lat: 12.6163, lon: 80.1917 }
     ];
 
     this.onLocationUpdated = null;

@@ -306,33 +306,45 @@ class SessionService:
         pdf.set_text_color(40, 48, 60)
         completed_relics = session.completed_relics or []
         if not completed_relics:
-            pdf.multi_cell(0, 6, _pdf_safe("No carving cards scanned yet. Scan any of the 5 Shore Temple cards during your walk!"))
+            pdf.set_x(pdf.l_margin)
+            pdf.multi_cell(pdf.epw, 6, _pdf_safe("No carving cards scanned yet. Scan any of the 5 Mahabalipuram cards during your walk!"))
         else:
             for code in completed_relics:
                 art = relics.get(code)
                 if art:
+                    pdf.set_x(pdf.l_margin)
                     pdf.set_font("Helvetica", "B", 10)
-                    pdf.cell(0, 6, _pdf_safe(f"- {art.name} ({art.period})"), ln=True)
+                    pdf.cell(pdf.epw, 6, _pdf_safe(f"- {art.name} ({art.period})"), new_x="LMARGIN", new_y="NEXT")
+                    pdf.set_x(pdf.l_margin)
                     pdf.set_font("Helvetica", "", 9)
-                    pdf.multi_cell(0, 5, _pdf_safe(art.story))
+                    pdf.multi_cell(pdf.epw, 5, _pdf_safe(art.story))
+                    if art.source:
+                        pdf.set_x(pdf.l_margin)
+                        pdf.multi_cell(pdf.epw, 4.5, _pdf_safe(f"Source: {art.source}"), wrapmode="CHAR")
                     pdf.ln(1)
         pdf.ln(3)
 
         # Itinerary Progress
+        pdf.set_x(pdf.l_margin)
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_text_color(0, 100, 130)
-        pdf.cell(0, 8, _pdf_safe("7-Stop Pallava Sanctuary Itinerary Log"), ln=True)
+        pdf.cell(pdf.epw, 8, _pdf_safe("7-Stop Mahabalipuram Itinerary Log"), new_x="LMARGIN", new_y="NEXT")
         visited_set = set(session.visited_steps or [])
         solved_set = set(session.solved_riddles or [])
         for s in stops:
             mark = "[VISITED]" if s.step_number in visited_set else "[PLANNED]"
             riddle_mark = " | Riddle Solved" if s.step_number in solved_set else ""
+            pdf.set_x(pdf.l_margin)
             pdf.set_font("Helvetica", "B", 10)
             pdf.set_text_color(20, 28, 42)
-            pdf.cell(0, 6, _pdf_safe(f"{s.step_number}. {s.title} ({s.era}) {mark}{riddle_mark}"), ln=True)
+            pdf.cell(pdf.epw, 6, _pdf_safe(f"{s.step_number}. {s.title} ({s.era}) {mark}{riddle_mark}"), new_x="LMARGIN", new_y="NEXT")
+            pdf.set_x(pdf.l_margin)
             pdf.set_font("Helvetica", "", 9)
             pdf.set_text_color(70, 80, 95)
-            pdf.multi_cell(0, 5, _pdf_safe(s.script_details))
+            pdf.multi_cell(pdf.epw, 5, _pdf_safe(s.script_details))
+            if s.source:
+                pdf.set_x(pdf.l_margin)
+                pdf.multi_cell(pdf.epw, 4.5, _pdf_safe(f"Source: {s.source}"), wrapmode="CHAR")
             pdf.ln(1)
 
         # Captured Memory Snapshots
@@ -482,6 +494,7 @@ class SessionService:
             "target_relic_code": stop.target_relic_code,
             "badge_reward": stop.badge_reward,
             "model_asset_url": poi.model_asset_url if poi else None,
+            "source": stop.source,
             "riddle": {
                 "question": stop.riddle_question,
                 "options": stop.riddle_options or [],

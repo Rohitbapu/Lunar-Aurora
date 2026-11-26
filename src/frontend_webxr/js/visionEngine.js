@@ -1,230 +1,180 @@
 /**
- * On-Device Mahabalipuram Carving & Relic Vision Engine
- * - Loads carving_signatures.json + custom TF.js model at /app/assets/vision_model/model.json if present
- * - Falls back to offline MobileNet / COCO-SSD + 96x96 visual card hue-gradient detector
- * - Applies strict >= 0.82 confidence threshold and logs real performance.now() latency
+ * On-Device MobileNetV2 TF.js Carving Classifier for Lunar Aurora
+ * - Strictly runs ONLY on [SCAN RELIC] tap (no background loop, no COCO-SSD keywords, no score boosts, no step fallback)
+ * - Verifies exact class order alignment with carving_signatures.json & model_classes.json
+ * - If model.json is missing or fails to load, displays "Vision model not installed" and refuses to guess
  */
 class VisionEngine {
   constructor() {
-    this.cocoModel = null;
     this.customModel = null;
+    this.modelInstalled = false;
     this.signaturesConfig = null;
+    this.classes = [];
     this.confidenceThreshold = 0.82;
+    this.inputWidth = 224;
+    this.inputHeight = 224;
+
     this.video = null;
     this.canvas = null;
     this.ctx = null;
-    this.probeCanvas = document.createElement('canvas');
-    this.probeCanvas.width = 96;
-    this.probeCanvas.height = 96;
-    this.probeCtx = this.probeCanvas.getContext('2d', { willReadFrequently: true });
-
-    this.isDetecting = false;
-    this.isLoadingModel = false;
-    this.currentPredictions = [];
-    this.lastCustomMatch = null;
     this.lastInferenceMs = 0;
     this.onStatusChange = null;
     this.onArtifactIdentified = null;
-    this.loopTimerId = null;
   }
 
   async init(videoElement, overlayCanvas) {
     this.video = videoElement;
     this.canvas = overlayCanvas;
-    this.ctx = overlayCanvas.getContext('2d');
+    this.ctx = overlayCanvas ? overlayCanvas.getContext('2d') : null;
+    this.modelInstalled = false;
+    this.customModel = null;
 
-    if (this.isLoadingModel || this.cocoModel || this.customModel) return;
-    this.isLoadingModel = true;
-    if (this.onStatusChange) this.onStatusChange("AI Loading...");
-
+    // 1. Load canonical ordered classes from carving_signatures.json
     try {
       const cfgRes = await fetch('/app/assets/vision_model/carving_signatures.json');
-      if (cfgRes.ok) {
-        this.signaturesConfig = await cfgRes.json();
-        this.confidenceThreshold = this.signaturesConfig.confidence_threshold || 0.82;
+      if (!cfgRes.ok) {
+        throw new Error(`carving_signatures.json returned HTTP ${cfgRes.status}`);
       }
-    } catch (e) {}
+      this.signaturesConfig = await cfgRes.json();
+      this.confidenceThreshold = Number(this.signaturesConfig.confidence_threshold ?? 0.82);
 
-    // Load trained custom TF.js model only if deployed at assets/vision_model/model.json
-    try {
-      const head = await fetch('/app/assets/vision_model/model.json', { method: 'HEAD' });
-      if (head.ok && window.tf) {
-        this.customModel = await window.tf.loadLayersModel('/app/assets/vision_model/model.json');
-        console.log("[VisionEngine] Custom 6-class carving TF.js model loaded.");
+      const sorted = [...(this.signaturesConfig.classes || [])].sort((a, b) => a.class_index - b.class_index);
+      for (let i = 0; i < sorted.length; i++) {
+        if (sorted[i].class_index !== i) {
+          throw new Error(`Class index mismatch in carving_signatures.json at index ${i}`);
+        }
       }
-    } catch (e) {}
-
-    try {
-      if (window.cocoSsd) {
-        this.cocoModel = await window.cocoSsd.load({ base: 'mobilenet_v2' });
+      this.classes = sorted;
+      if (Array.isArray(this.signaturesConfig.input_size) && this.signaturesConfig.input_size.length === 2) {
+        this.inputWidth = this.signaturesConfig.input_size[0];
+        this.inputHeight = this.signaturesConfig.input_size[1];
       }
-      this.isLoadingModel = false;
-      if (this.onStatusChange) this.onStatusChange("AI Ready");
     } catch (err) {
-      console.warn("[VisionEngine] Model load warning:", err);
-      this.isLoadingModel = false;
-      if (this.onStatusChange) this.onStatusChange("AI Standby");
+      console.error("[VisionEngine] Config load error:", err);
+      if (this.onStatusChange) this.onStatusChange("Vision model not installed");
+      return false;
     }
-  }
 
-  startDetectionLoop() {
-    if (this.isDetecting) return;
-    this.isDetecting = true;
-    this.detectFrame();
-  }
-
-  stopDetection() {
-    this.isDetecting = false;
-    if (this.loopTimerId) {
-      clearTimeout(this.loopTimerId);
-      this.loopTimerId = null;
-    }
-    if (this.ctx && this.canvas) {
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-  }
-
-  async _classifyCustomCard() {
-    if (!this.video || this.video.readyState < 2) return null;
-
-    if (this.customModel && window.tf && this.signaturesConfig?.classes) {
-      const probs = window.tf.tidy(() => {
-        const img = window.tf.browser.fromPixels(this.video)
-          .resizeBilinear([224, 224])
-          .toFloat()
-          .div(255.0)
-          .expandDims(0);
-        return this.customModel.predict(img).dataSync();
-      });
-      let bestIdx = 0;
-      for (let i = 1; i < probs.length; i++) {
-        if (probs[i] > probs[bestIdx]) bestIdx = i;
+    // 2. Load custom MobileNetV2 TF.js model strictly (no fallback hacks)
+    const modelUrl = this.signaturesConfig.tfjs_model_url || '/app/assets/vision_model/model.json';
+    try {
+      const headRes = await fetch(modelUrl, { method: 'HEAD' });
+      if (!headRes.ok || !window.tf) {
+        this._reportNotInstalled("model.json missing");
+        return false;
       }
-      const cls = this.signaturesConfig.classes[bestIdx];
-      if (cls && cls.is_relic && probs[bestIdx] >= this.confidenceThreshold) {
-        return { classId: cls.id, label: cls.label, score: probs[bestIdx] };
-      }
-      return null;
-    }
 
-    // Map COCO-SSD labels cleanly onto registered carving classes
-    if (this.currentPredictions.length > 0 && this.signaturesConfig?.classes) {
-      for (const pred of this.currentPredictions) {
-        if (pred.score < 0.55) continue;
-        const pName = pred.class.toLowerCase();
-        for (const cls of this.signaturesConfig.classes) {
-          if (!cls.is_relic) continue;
-          if ((cls.keywords || []).includes(pName)) {
-            const boosted = Math.min(0.96, pred.score + 0.25);
-            if (boosted >= this.confidenceThreshold) {
-              return { classId: cls.id, label: cls.label, score: boosted, bbox: pred.bbox };
-            }
-          }
+      this.customModel = await window.tf.loadLayersModel(modelUrl);
+
+      // Assert model output units match carving_signatures.json class count
+      const outShape = this.customModel.outputs[0].shape;
+      const numOutputs = outShape[outShape.length - 1];
+      if (numOutputs !== this.classes.length) {
+        this.customModel = null;
+        throw new Error(
+          `Model output dimension (${numOutputs}) != carving_signatures.json classes (${this.classes.length}).`
+        );
+      }
+
+      // Verify exact class order against exported model_classes.json if present
+      const classesUrl = this.signaturesConfig.classes_manifest_url || '/app/assets/vision_model/model_classes.json';
+      const clsRes = await fetch(classesUrl);
+      if (clsRes.ok) {
+        const exported = await clsRes.json();
+        const exportedOrder = exported.classes || [];
+        const expectedOrder = this.classes.map(c => c.id);
+        if (
+          exportedOrder.length !== expectedOrder.length ||
+          exportedOrder.some((name, idx) => name !== expectedOrder[idx])
+        ) {
+          this.customModel = null;
+          throw new Error(
+            `Class order mismatch! Exported=${JSON.stringify(exportedOrder)} vs signatures=${JSON.stringify(expectedOrder)}`
+          );
         }
       }
-    }
-    return null;
-  }
 
-  async detectFrame() {
-    if (!this.isDetecting) return;
-
-    if (this.video && this.video.readyState >= 2 && !this.video.paused) {
-      const containerW = this.canvas.clientWidth || window.innerWidth;
-      const containerH = this.canvas.clientHeight || window.innerHeight;
-      if (this.canvas.width !== containerW || this.canvas.height !== containerH) {
-        this.canvas.width = containerW;
-        this.canvas.height = containerH;
-      }
-
-      const t0 = performance.now();
-      try {
-        if (this.cocoModel) {
-          this.currentPredictions = await this.cocoModel.detect(this.video);
-        }
-        this.lastCustomMatch = await this._classifyCustomCard();
-      } catch (e) {}
-      this.lastInferenceMs = Math.round(performance.now() - t0);
-
-      const latEl = document.getElementById('demo-vision-latency');
-      if (latEl) latEl.textContent = `${this.lastInferenceMs} ms`;
-
-      this.renderPredictions(this.currentPredictions, this.lastCustomMatch);
-    }
-
-    this.loopTimerId = setTimeout(() => this.detectFrame(), 300);
-  }
-
-  renderPredictions(predictions, cardMatch) {
-    if (!this.ctx || !this.canvas || !this.video) return;
-    const cw = this.canvas.width;
-    const ch = this.canvas.height;
-    const vw = this.video.videoWidth;
-    const vh = this.video.videoHeight;
-
-    this.ctx.clearRect(0, 0, cw, ch);
-    if (!vw || !vh) return;
-
-    const scale = Math.max(cw / vw, ch / vh);
-    const offsetX = (cw - vw * scale) / 2;
-    const offsetY = (ch - vh * scale) / 2;
-
-    if (cardMatch && cardMatch.bbox) {
-      const [rx, ry, rw, rh] = cardMatch.bbox;
-      const x = rx * scale + offsetX;
-      const y = ry * scale + offsetY;
-      const w = rw * scale;
-      const h = rh * scale;
-
-      this.ctx.strokeStyle = '#00e676';
-      this.ctx.lineWidth = 2.5;
-      this.ctx.strokeRect(x, y, w, h);
-
-      const tag = `${cardMatch.label.toUpperCase()} ${Math.round(cardMatch.score * 100)}% (${this.lastInferenceMs}ms)`;
-      this.ctx.font = 'bold 11px sans-serif';
-      const tw = this.ctx.measureText(tag).width + 12;
-      const ly = Math.max(24, y);
-      this.ctx.fillStyle = 'rgba(7, 14, 24, 0.88)';
-      this.ctx.fillRect(x, ly - 22, tw, 20);
-      this.ctx.fillStyle = '#00e676';
-      this.ctx.fillText(tag, x + 6, ly - 8);
-      return;
-    }
-
-    for (const pred of predictions) {
-      if (pred.score < 0.45) continue;
-      const [rx, ry, rw, rh] = pred.bbox;
-      const x = rx * scale + offsetX;
-      const y = ry * scale + offsetY;
-      const width = rw * scale;
-      const height = rh * scale;
-
-      this.ctx.strokeStyle = 'rgba(0, 229, 255, 0.72)';
-      this.ctx.lineWidth = 2;
-      this.ctx.strokeRect(x, y, width, height);
-
-      const labelText = `${pred.class.toUpperCase()} ${Math.round(pred.score * 100)}%`;
-      this.ctx.font = 'bold 11px sans-serif';
-      const textWidth = this.ctx.measureText(labelText).width + 12;
-      const labelY = Math.max(24, y);
-      this.ctx.fillStyle = 'rgba(10, 14, 23, 0.85)';
-      this.ctx.fillRect(x, labelY - 22, textWidth, 20);
-      this.ctx.fillStyle = '#f4c430';
-      this.ctx.fillText(labelText, x + 6, labelY - 8);
+      this.modelInstalled = true;
+      console.log("[VisionEngine] MobileNetV2 TF.js classifier loaded:", this.classes.map(c => c.id));
+      if (this.onStatusChange) this.onStatusChange("Vision Model Ready");
+      return true;
+    } catch (err) {
+      console.error("[VisionEngine] Vision model load failure:", err);
+      this._reportNotInstalled(err.message);
+      return false;
     }
   }
 
+  _reportNotInstalled(reason) {
+    this.modelInstalled = false;
+    this.customModel = null;
+    console.warn("[VisionEngine] Vision model not installed:", reason);
+    if (this.onStatusChange) this.onStatusChange("Vision model not installed");
+  }
+
+  /**
+   * Runs inference strictly once when user taps [SCAN RELIC].
+   */
   async scanCurrentTarget() {
+    if (!this.modelInstalled || !this.customModel) {
+      if (typeof showNotification === 'function') {
+        showNotification("Vision model not installed");
+      }
+      if (this.onStatusChange) this.onStatusChange("Vision model not installed");
+      return { recognized: false, error: "Vision model not installed" };
+    }
+
+    if (!this.video || this.video.readyState < 2 || !window.tf) {
+      if (typeof showNotification === 'function') {
+        showNotification("Camera stream not ready yet.");
+      }
+      return { recognized: false, error: "Camera not ready" };
+    }
+
     const t0 = performance.now();
-    let labels = [];
-    if (this.lastCustomMatch && this.lastCustomMatch.score >= this.confidenceThreshold) {
-      labels = [this.lastCustomMatch.classId];
-    } else if (this.currentPredictions && this.currentPredictions.length > 0) {
-      labels = this.currentPredictions.filter(p => p.score >= 0.4).map(p => p.class.toLowerCase());
+    const probs = window.tf.tidy(() => {
+      const frame = window.tf.browser.fromPixels(this.video);
+      const resized = window.tf.image.resizeBilinear(frame, [this.inputHeight, this.inputWidth]);
+      // Match tf.keras.applications.mobilenet_v2.preprocess_input: scale [0,255] -> [-1, 1]
+      const normalized = resized.toFloat().div(127.5).sub(1.0).expandDims(0);
+      return this.customModel.predict(normalized).dataSync();
+    });
+    this.lastInferenceMs = Math.round((performance.now() - t0) * 100) / 100;
+
+    const latEl = document.getElementById('demo-vision-latency');
+    if (latEl) latEl.textContent = `${this.lastInferenceMs} ms`;
+
+    if (probs.length !== this.classes.length) {
+      throw new Error(`Softmax length (${probs.length}) != expected class count (${this.classes.length})`);
+    }
+
+    let bestIdx = 0;
+    for (let i = 1; i < probs.length; i++) {
+      if (probs[i] > probs[bestIdx]) bestIdx = i;
+    }
+
+    const bestScore = Number(probs[bestIdx]);
+    const bestClass = this.classes[bestIdx];
+
+    console.log(
+      `[VisionEngine] Inference ${this.lastInferenceMs} ms | top=${bestClass.id} (${(bestScore * 100).toFixed(2)}%)`
+    );
+
+    if (bestScore < this.confidenceThreshold || !bestClass.is_relic) {
+      if (typeof showNotification === 'function') {
+        showNotification(
+          `No carving recognized (${bestClass.id}: ${Math.round(bestScore * 100)}% < ${Math.round(this.confidenceThreshold * 100)}%, ${this.lastInferenceMs}ms)`
+        );
+      }
+      return {
+        recognized: false,
+        topClass: bestClass.id,
+        score: bestScore,
+        inference_ms: this.lastInferenceMs
+      };
     }
 
     const sessionId = window.tourManager ? window.tourManager.sessionId : null;
-    const currentStep = window.tourManager ? window.tourManager.currentStep : 1;
     const lang = (window.tourManager && window.tourManager.language) || window.currentLanguage || 'en';
 
     try {
@@ -232,8 +182,7 @@ class VisionEngine {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          detected_labels: labels,
-          current_step: currentStep,
+          detected_labels: [bestClass.id],
           session_id: sessionId,
           language: lang
         })
@@ -241,16 +190,17 @@ class VisionEngine {
 
       if (response.ok) {
         const data = await response.json();
-        data.inference_ms = this.lastInferenceMs || Math.round(performance.now() - t0);
+        data.inference_ms = this.lastInferenceMs;
+        data.softmax_score = bestScore;
         if (this.onArtifactIdentified) {
           this.onArtifactIdentified(data);
         }
-        return data;
+        return { recognized: true, ...data };
       }
     } catch (err) {
       console.warn("[VisionEngine] API identify error:", err);
     }
-    return null;
+    return { recognized: false, error: "Backend identify error" };
   }
 }
 

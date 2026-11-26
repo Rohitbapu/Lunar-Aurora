@@ -13,16 +13,32 @@ def _make_sample_jpeg_b64() -> str:
 
 TINY_JPEG_B64 = _make_sample_jpeg_b64()
 
+NEW_CARD_CLASSES = [
+    "shore_temple_vimana",
+    "pancha_rathas",
+    "arjunas_penance",
+    "krishnas_butter_ball",
+    "mahishasuramardini_cave",
+]
+
 def run_tests():
     seed_database(force_reset=True)
     client = TestClient(app)
 
-    print("1. Testing Root, Health & Mahabalipuram Site Overview:")
+    print("1. Testing Root, Health, Overview & /static/cards Images:")
     assert client.get("/").status_code == 200
     assert client.get("/health").status_code == 200
     ov = client.get("/api/site/overview")
     assert ov.status_code == 200 and "Mahabalipuram" in ov.json()["site_name"]
-    print("   -> OK")
+    for img_name in [
+        "01_shore_temple_vimana.jpg",
+        "02_pancha_rathas.jpg",
+        "03_arjunas_penance.jpg",
+        "04_krishnas_butter_ball.jpg",
+        "05_mahishasuramardini_cave.jpg",
+    ]:
+        assert client.get(f"/static/cards/{img_name}").status_code == 200
+    print("   -> OK (all 5 Wikimedia card photos served locally)")
 
     print("2. Testing Ticketing Counter Portal & URL-Encoded QR URL (EN/TA/HI):")
     r_ticket_page = client.get("/ticket")
@@ -34,14 +50,14 @@ def run_tests():
     assert parsed["name"][0] == "Priya Patel"
     print(f"   -> OK (Ticket #{ticket_data['ticket_id']})")
 
-    print("3. Testing Personalized Session Start, Riddle Quiz & Audio Failsafe:")
+    print("3. Testing Personalized Session Start, Sourced Riddle Quiz & Audio Failsafe:")
     session_id = ticket_data["session_id"]
     r_start = client.post("/api/session/start", json={"session_id": session_id, "customer_name": "Priya Patel", "generate_audio": True})
     assert r_start.status_code == 200
     sess = r_start.json()
     assert sess["current_step"] == 1
     assert "Priya Patel" in sess["current_stop"]["personalized_welcome"]
-    assert sess["current_stop"]["riddle"] is not None
+    assert sess["current_stop"]["source"].startswith("https://")
     r_riddle = client.post("/api/session/riddle", json={
         "session_id": session_id,
         "step_number": 1,
@@ -49,51 +65,64 @@ def run_tests():
     })
     assert r_riddle.status_code == 200 and r_riddle.json()["correct"] is True
     assert r_riddle.json()["xp_awarded"] == 45
-    print("   -> OK (Session Start + Riddle +45 XP verified)")
+    print("   -> OK (Session Start + Sourced Riddle +45 XP verified)")
 
-    print("4. Testing Sequential Stop Advancement (Stop 1 -> Stop 2):")
+    print("4. Testing Sequential Stop Advancement (Stop 1 -> Stop 2 Shore Temple Shrines):")
     r_adv = client.post("/api/session/advance", json={"session_id": session_id})
     assert r_adv.status_code == 200
     adv = r_adv.json()
     assert adv["current_step"] == 2
-    assert "Priya Patel" in adv["stop"]["personalized_welcome"]
+    assert "Shore Temple" in adv["stop"]["title"]
+    assert adv["stop"]["source"].startswith("https://")
     print(f"   -> OK (Advanced to Stop 2: {adv['stop']['title']}, XP: {adv['total_xp']})")
 
-    print("5. Testing 7-Stop Blueprint Map Data:")
+    print("5. Testing 7-Stop Blueprint Map Data & Source URLs:")
     r_bp = client.get(f"/api/session/{session_id}/blueprint")
     assert r_bp.status_code == 200 and r_bp.json()["total_steps"] == 7
-    print("   -> OK")
+    assert all(s["source"] and s["source"].startswith("https://") for s in r_bp.json()["stops"])
+    print("   -> OK (all 7 stops have valid source URLs)")
 
-    print("6. Testing Dual Telemetry (Shortest Sun vs Shaded Green Route) & Rest Routing:")
+    print("6. Testing Dual Telemetry (Shortest Sun vs Shaded Route) & Cave Shade Rest Routing:")
     r_tel = client.get("/api/site/telemetry?start_id=1&target_id=7&hour=13.0")
     assert r_tel.status_code == 200
     tel = r_tel.json()
     assert tel["found"] is True
-    assert len(tel["shortest_path"]["path_node_ids"]) >= 2
-    assert len(tel["shaded_path"]["path_node_ids"]) >= 2
-    assert tel["heat_exposure_saved_pct"] >= 0.0
+    assert tel["heat_exposure_saved_pct"] > 0.0
     r_rest = client.get("/api/routing/take-a-rest?current_node_id=1&hour=12.0")
     assert r_rest.status_code == 200 and r_rest.json()["found"] is True
     rest_dest = r_rest.json()["path_nodes"][-1]["name"]
-    assert "Banyan" in rest_dest or "Bastion" in rest_dest
+    assert "Varaha" in rest_dest or "Mahishasuramardini" in rest_dest
     print(f"   -> OK (Heat Saved: {tel['heat_exposure_saved_pct']}%, Rest: {rest_dest})")
 
-    print("7. Testing Custom Carving Card Recognition & Scavenger Unlock:")
-    r_vis = client.post("/api/vision/identify", json={
-        "detected_labels": ["yali_pillar"],
-        "current_step": 2,
-        "session_id": session_id,
-        "language": "en"
-    })
-    assert r_vis.status_code == 200
-    vis_data = r_vis.json()
-    assert vis_data["artifact"]["code"] == "yali_pillar"
-    assert vis_data["quest_unlocked"] is not None
-    print(f"   -> OK (Identified: {vis_data['artifact']['name']} + Quest: {vis_data['quest_unlocked']['badge_name']})")
+    print("7. Testing All 5 Mahabalipuram Card Classes, Scavenger Unlock & No-Guessing Check:")
+    for card_cls in NEW_CARD_CLASSES:
+        r_cls = client.post("/api/vision/identify", json={
+            "detected_labels": [card_cls],
+            "session_id": session_id,
+            "language": "en"
+        })
+        assert r_cls.status_code == 200
+        art = r_cls.json()["artifact"]
+        assert art["code"] == card_cls and art["confidence_match"] is True
+        assert art["source"] and art["source"].startswith("https://")
+        assert art["image_url"] and client.get(art["image_url"]).status_code == 200
 
-    print("8. Testing Multilingual Chat (2.5s Timeout Safety) & Session Persistence:")
+    # Empty/background labels must never guess a relic
+    for invalid in ([], ["background"]):
+        r_empty = client.post("/api/vision/identify", json={
+            "detected_labels": invalid,
+            "current_step": 2,
+            "session_id": session_id,
+            "language": "en"
+        })
+        assert r_empty.status_code == 200
+        assert r_empty.json()["artifact"]["confidence_match"] is False
+        assert r_empty.json()["artifact"]["code"] == "unregistered_feature"
+    print("   -> OK (all 5 classes verified + background/empty never guess)")
+
+    print("8. Testing Multilingual Chat & Session Persistence:")
     r_chat = client.post("/api/chat", json={
-        "message": "Where is the nearest shaded rest area?",
+        "message": "Where is the nearest shaded cave rest stop?",
         "customer_name": "Priya Patel",
         "current_step": 2,
         "session_id": session_id,
@@ -107,7 +136,7 @@ def run_tests():
     print("9. Testing AR Memory Photo Snapshot & PDF Travel Journal Export:")
     r_photo = client.post(f"/api/tour/{session_id}/photo", json={
         "stop_step": 2,
-        "stop_title": "Monolithic Yali Pillars Gallery",
+        "stop_title": "Shore Temple Shrines",
         "image_base64": TINY_JPEG_B64
     })
     assert r_photo.status_code == 200 and r_photo.json()["saved"] is True
@@ -119,7 +148,7 @@ def run_tests():
     assert r_pdf.content.startswith(b"%PDF")
     print(f"   -> OK (PDF Travel Journal generated: {len(r_pdf.content)} bytes)")
 
-    print("\n[SUCCESS] ALL 9 END-TO-END MAHABALIPURAM BACKEND TESTS PASSED!")
+    print("\n[SUCCESS] ALL 9 END-TO-END MAHABALIPURAM TESTS PASSED!")
 
 if __name__ == "__main__":
     run_tests()

@@ -116,6 +116,7 @@ def get_full_blueprint(session_id: str, db: Session = Depends(get_db)):
             "longitude": poi.longitude if poi else 80.1993,
             "model_asset_url": poi.model_asset_url if poi else None,
             "target_relic_code": s.target_relic_code,
+            "source": s.source,
             "riddle": {
                 "question": s.riddle_question,
                 "options": s.riddle_options or [],

@@ -1,28 +1,40 @@
 from sqlalchemy import inspect
 from app.database import engine, SessionLocal, init_db
-from app.models.entities import Base, POINode, PathEdge, RelicArtifact, ScavengerQuest, BlueprintStop, TourSession
+from app.models.entities import Base, POINode, PathEdge, RelicArtifact, ScavengerQuest, BlueprintStop
+
+SRC_UNESCO = "https://whc.unesco.org/en/list/249/"
+SRC_GROUP = "https://en.wikipedia.org/wiki/Group_of_Monuments_at_Mahabalipuram"
+SRC_SHORE = "https://en.wikipedia.org/wiki/Shore_Temple"
+SRC_RATHAS = "https://en.wikipedia.org/wiki/Pancha_Rathas"
+SRC_ARJUNA = "https://en.wikipedia.org/wiki/Descent_of_the_Ganges_(Mahabalipuram)"
+SRC_BUTTERBALL = "https://en.wikipedia.org/wiki/Krishna%27s_Butterball"
+SRC_VARAHA = "https://en.wikipedia.org/wiki/Varaha_Cave_Temple"
+SRC_MAHISHASURA = "https://en.wikipedia.org/wiki/Mahishasuramardini_Mandapa"
+
 
 def ensure_schema(force_reset: bool = False):
-    """Ensures SQLite tables include new Mahabalipuram columns without manual migrations."""
+    """Ensures SQLite tables include the 'source' column cleanly without stale schema."""
     inspector = inspect(engine)
-    existing_tables = inspector.get_table_names()
+    existing = inspector.get_table_names()
     needs_rebuild = force_reset
-    if "blueprint_stops" in existing_tables and not needs_rebuild:
-        cols = {c["name"] for c in inspector.get_columns("blueprint_stops")}
-        if "riddle_question" not in cols:
-            needs_rebuild = True
-    if "tour_sessions" in existing_tables and not needs_rebuild:
+    for tbl in ("poi_nodes", "blueprint_stops", "relic_artifacts", "scavenger_quests"):
+        if tbl in existing and not needs_rebuild:
+            cols = {c["name"] for c in inspector.get_columns(tbl)}
+            if "source" not in cols:
+                needs_rebuild = True
+    if "tour_sessions" in existing and not needs_rebuild:
         cols = {c["name"] for c in inspector.get_columns("tour_sessions")}
         if "solved_riddles" not in cols or "captured_photos" not in cols:
             needs_rebuild = True
 
     if needs_rebuild:
-        print("[Database] Rebuilding schema cleanly for updated Mahabalipuram models...")
+        print("[Database] Rebuilding schema cleanly for sourced Mahabalipuram models...")
         Base.metadata.drop_all(bind=engine)
     init_db()
 
+
 def seed_database(force_reset: bool = False):
-    print("[Database] Initializing Mahabalipuram Shore Temple Complex database...")
+    print("[Database] Seeding Group of Monuments at Mahabalipuram (UNESCO 1984)...")
     ensure_schema(force_reset=force_reset)
     db = SessionLocal()
 
@@ -33,330 +45,349 @@ def seed_database(force_reset: bool = False):
     db.query(POINode).delete()
     db.commit()
 
-    print("[Database] Seeding POINodes (Mahabalipuram Shore Temple Complex, 12.6165 deg N)...")
+    # 7 Verified Mahabalipuram Monuments (every fact & date sourced directly from Wikipedia / UNESCO)
     nodes_data = [
         POINode(
-            id=1, slug="shore_gopuram", name="Shore Temple East Gopuram (Entrance)",
+            id=1, slug="shore_temple_entry", name="Shore Temple Coastal Entry",
             category="entrance",
-            historical_era="700-728 CE Pallava Dynasty",
-            description="East-facing coastal entrance overlooking the Bay of Bengal, built by Rajasimha (Narasimhavarman II).",
+            historical_era="7th-8th century CE (Pallava Dynasty)",
+            description="Coastal approach to the Group of Monuments at Mahabalipuram on the Bay of Bengal, about 60 km south of Chennai.",
+            source=SRC_GROUP,
             x=0.0, y=0.0, z=0.0, latitude=12.6165, longitude=80.1993,
-            has_benches=True, has_water=True, has_tree_shade=False, average_ambient_temp_c=33.0,
+            has_benches=True, has_water=True, has_tree_shade=False, average_ambient_temp_c=32.5,
+            model_asset_url=None
+        ),
+        POINode(
+            id=2, slug="shore_temple_vimana", name="Shore Temple Shrines",
+            category="monument",
+            historical_era="c. 725 AD (Narasimhavarman II)",
+            description="Structural granite temple complex overlooking the Bay of Bengal, one of Southern India's oldest structural stone temples.",
+            source=SRC_SHORE,
+            x=25.0, y=40.0, z=0.0, latitude=12.6168, longitude=80.1995,
+            has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
+            # Illustrative placeholder only assigned here; never reused on other classes
             model_asset_url="/app/assets/models/Grand_Solstice_Sun_Temple.glb"
         ),
         POINode(
-            id=2, slug="yali_courtyard", name="Monolithic Yali Pillars Gallery",
+            id=3, slug="pancha_rathas", name="Pancha Rathas Monolithic Complex",
             category="monument",
-            historical_era="705 CE Pallava Dravidian",
-            description="Covered granite prakara corridor featuring roaring Pallava lion-elephant Yali guardians and cool colonnade shade.",
-            x=25.0, y=40.0, z=0.0, latitude=12.6169, longitude=80.1995,
-            has_benches=True, has_water=False, has_tree_shade=False, average_ambient_temp_c=29.5,
-            model_asset_url="/app/assets/models/Celestial_Airavata_Sculpture.glb"
+            historical_era="7th-8th century CE (Pallava Dynasty)",
+            description="Five monolithic rock-cut chariot-shaped monuments carved over single north-south sloping granite stones, named after the Pandavas and Draupadi.",
+            source=SRC_RATHAS,
+            x=75.0, y=85.0, z=2.0, latitude=12.6090, longitude=80.1895,
+            has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=34.0,
+            model_asset_url=None
         ),
         POINode(
-            id=3, slug="chariot_terrace", name="Chariot Wheel Solar Chronometer",
+            id=4, slug="arjunas_penance", name="Arjuna's Penance (Descent of the Ganges)",
             category="monument",
-            historical_era="712 CE Pallava Astronomy",
-            description="Open eastern plinth aligned with the coastal equinox sunrise featuring a 24-spoke carved stone chronometer.",
-            x=75.0, y=85.0, z=4.0, latitude=12.6173, longitude=80.1999,
-            has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=35.5,
-            model_asset_url="/app/assets/models/Solstitial_Lotus_Gnomon.glb"
+            historical_era="7th-8th century CE (Pallava Dynasty)",
+            description="Open-air bas-relief measuring 96 by 43 feet (29 m x 13 m) carved across two monolithic boulders depicting the descent of the Ganges led by Bhagiratha.",
+            source=SRC_ARJUNA,
+            x=30.0, y=110.0, z=2.0, latitude=12.6177, longitude=80.1928,
+            has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
+            model_asset_url=None
         ),
         POINode(
-            id=4, slug="central_sanctum", name="Rajasimhesvara Shore Vimana",
+            id=5, slug="krishnas_butter_ball", name="Krishna's Butterball (Vaan Irai Kal)",
             category="monument",
-            historical_era="715 CE Twin Granite Spires",
-            description="Twin pyramid granite vimanas fitted without mortar, standing against Bay of Bengal salt winds for 1,300 years.",
-            x=30.0, y=110.0, z=2.0, latitude=12.6175, longitude=80.1994,
-            has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=32.5,
-            model_asset_url="/app/assets/models/Grand_Solstice_Sun_Temple.glb"
+            historical_era="Protected ASI Monument (Mamallapuram)",
+            description="Gigantic granite erratic boulder resting on a short rocky incline near the cave monuments, listed as a protected monument by the ASI.",
+            source=SRC_BUTTERBALL,
+            x=-20.0, y=120.0, z=4.0, latitude=12.6191, longitude=80.1924,
+            has_benches=True, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
+            model_asset_url=None
         ),
         POINode(
-            id=5, slug="lotus_basin", name="Royal Lotus Hydraulic Basin",
-            category="monument",
-            historical_era="720 CE Pallava Hydraulics",
-            description="Evaporative hexagonal stone tank linked to ancient coastal groundwater channels to chill the inner sanctuary.",
-            x=-20.0, y=120.0, z=0.0, latitude=12.6176, longitude=80.1989,
-            has_benches=True, has_water=True, has_tree_shade=False, average_ambient_temp_c=28.0,
-            model_asset_url="/app/assets/models/Solstitial_Lotus_Gnomon.glb"
-        ),
-        POINode(
-            id=6, slug="banyan_canopy", name="Arjuna's Penance Banyan Canopy & Gallery",
+            id=6, slug="varaha_cave", name="Varaha Cave Temple (Adivaraha Mandapa)",
             category="shade_rest",
-            historical_era="725 CE Pallava Sculptural Gallery",
-            description="Deep banyan tree canopy shading cosmic Nataraja dance reliefs, cool drinking fountains, and resting benches.",
-            x=-40.0, y=65.0, z=0.0, latitude=12.6171, longitude=80.1986,
-            has_benches=True, has_water=True, has_tree_shade=True, average_ambient_temp_c=27.2,
-            model_asset_url="/app/assets/models/Celestial_Airavata_Sculpture.glb"
+            historical_era="Late 7th century CE (Pallava Rock-Cut Cave)",
+            description="Rock-cut cave temple providing indoor stone shade, noted for the carved panel of Vishnu as Varaha lifting Bhudevi from the sea.",
+            source=SRC_VARAHA,
+            x=-40.0, y=65.0, z=3.0, latitude=12.6184, longitude=80.1920,
+            has_benches=True, has_water=True, has_tree_shade=True, average_ambient_temp_c=28.0,
+            model_asset_url=None
         ),
         POINode(
-            id=7, slug="sunset_bastion", name="Coromandel Sunset Bastion",
+            id=7, slug="mahishasuramardini_cave", name="Mahishasuramardini Mandapa (Yampuri)",
             category="shade_rest",
-            historical_era="728 CE Western Terrace",
-            description="Elevated shaded bastion overlooking the Shore Temple silhouette and Coromandel coastline with cooling breezes.",
-            x=60.0, y=140.0, z=6.0, latitude=12.6178, longitude=80.1997,
+            historical_era="Late 7th century CE (Pallava Cave Temple)",
+            description="Shaded rock-cut cave temple located near the hill lighthouse with three sculpted panels: Durga slaying Mahishasura, reclining Vishnu, and Shiva.",
+            source=SRC_MAHISHASURA,
+            x=60.0, y=140.0, z=6.0, latitude=12.6163, longitude=80.1917,
             has_benches=True, has_water=True, has_tree_shade=True, average_ambient_temp_c=28.5,
-            model_asset_url="/app/assets/models/Grand_Solstice_Sun_Temple.glb"
+            model_asset_url=None
         )
     ]
     for n in nodes_data:
         db.add(n)
     db.commit()
 
-    print("[Database] Seeding BlueprintStops (7 Authentic Mahabalipuram Stations + Riddles)...")
     stops_data = [
         BlueprintStop(
             step_number=1, poi_id=1,
-            title="Shore Temple East Gopuram",
-            subtitle="Pallava Coastal Gateway",
-            era="700 CE • Rajasimha Reign",
+            title="Shore Temple Coastal Entry",
+            subtitle="UNESCO Group of Monuments at Mahabalipuram",
+            era="7th-8th century CE (UNESCO 1984)",
             script_welcome=(
-                "Vanakkam and welcome to Mahabalipuram Shore Temple, {name}! "
-                "I am Luna, your Spatial AI Guide. Notice how this eastern gateway frames the rising Bay of Bengal sun. "
-                "Commissioned by Pallava king Narasimhavarman II around 700 CE, these basalt-hard granite slabs were interlocked without mortar. "
-                "Follow our shaded master trail when you are ready!"
+                "Vanakkam and welcome to Mahabalipuram, {name}! "
+                "The Group of Monuments at Mahabalipuram was built during the 7th and 8th centuries CE by the Pallava dynasty on the Coromandel Coast, about 60 kilometres south of Chennai, and was inscribed as a UNESCO World Heritage Site in 1984."
             ),
-            script_details="The Shore Temple faces due east at 12.6165 deg N so solstice dawn light pierces straight into the Somaskanda sanctum.",
-            next_step_guidance="Walk 47 meters north along the cool stone colonnade toward the Monolithic Yali Pillars Gallery.",
-            distance_to_next=47.0, walking_time_mins=1.0, shade_rating="HIGH SHADE",
-            target_relic_code="shore_temple_vimana", badge_reward="Pallava Gateway Seal", xp_reward=50,
-            riddle_question="Which Pallava monarch commissioned the structural Shore Temple around 700 CE?",
-            riddle_options=["Narasimhavarman II (Rajasimha)", "Ashoka the Great", "Krishnadevaraya"],
-            riddle_answer="Narasimhavarman II (Rajasimha)"
+            script_details="The heritage group includes rock-cut rathas, cave mandapas, open-air bas-reliefs, and structural stone-cut temples managed after 1960 under the Archaeological Survey of India.",
+            next_step_guidance="Walk 47 meters north along the coastal stone walkway to inspect the structural Shore Temple shrines.",
+            distance_to_next=47.0, walking_time_mins=1.0, shade_rating="COASTAL PATH",
+            target_relic_code="shore_temple_vimana", badge_reward="Mahabalipuram Pilgrim Seal", xp_reward=50,
+            riddle_question="In which year was the Group of Monuments at Mahabalipuram classified as a UNESCO World Heritage Site?",
+            riddle_options=["1984", "1956", "2001"],
+            riddle_answer="1984",
+            source=SRC_GROUP
         ),
         BlueprintStop(
             step_number=2, poi_id=2,
-            title="Monolithic Yali Pillars Gallery",
-            subtitle="Sculpted Prakara Colonnade",
-            era="705 CE • Pallava Dravidian",
+            title="Shore Temple Shrines",
+            subtitle="Oldest Structural Stone Temple in South India",
+            era="c. 725 AD (Narasimhavarman II)",
             script_welcome=(
-                "Step beneath the covered granite colonnade, {name}. Here temperatures drop noticeably beside the roaring Pallava Yali pillars—mythical guardians combining lion strength and elephant grace. "
-                "Point your camera at the Yali Pillar card to trigger its 3D reconstruction!"
+                "{name}, you are standing beside the Shore Temple, dating from the 8th century AD (c. 725 AD) during the reign of Pallava king Narasimhavarman II. "
+                "Point at Card 1 and tap SCAN RELIC to view the illustrative 3D model and sourced architecture notes."
             ),
-            script_details="Unlike soft sandstone inland, Pallava guild carvers shaped ultra-dense charnockite granite using tempered iron chisels.",
-            next_step_guidance="Continue 67 meters northeast toward the Chariot Wheel Solar Chronometer Terrace.",
-            distance_to_next=67.0, walking_time_mins=1.5, shade_rating="COOL COLONNADE",
-            target_relic_code="yali_pillar", badge_reward="Yali Guardian Crest", xp_reward=75,
-            riddle_question="What mythic creatures flank the Shore Temple prakara columns to symbolize royal vigilance?",
-            riddle_options=["Yali (Lion-Elephant guardians)", "Winged Pegasi", "Sphinxes"],
-            riddle_answer="Yali (Lion-Elephant guardians)"
+            script_details="Unlike rock-cut caves cut into living hill rock, the Shore Temple is a structural temple built from blocks of granite overlooking the Bay of Bengal.",
+            next_step_guidance="Follow the shaded route 67 meters toward the Pancha Rathas monolithic rock-cut complex.",
+            distance_to_next=67.0, walking_time_mins=1.5, shade_rating="OPEN COASTAL SUN",
+            target_relic_code="shore_temple_vimana", badge_reward="Structural Granite Crest", xp_reward=75,
+            riddle_question="Which Pallava ruler reigned during the creation of the structural Shore Temple (c. 725 AD)?",
+            riddle_options=["Narasimhavarman II", "Ashoka Maurya", "Krishnadevaraya"],
+            riddle_answer="Narasimhavarman II",
+            source=SRC_SHORE
         ),
         BlueprintStop(
             step_number=3, poi_id=3,
-            title="Chariot Wheel Solar Chronometer",
-            subtitle="Coastal Equinox Sundial",
-            era="712 CE • Archaeo-Astronomy",
+            title="Pancha Rathas Complex",
+            subtitle="Monolithic Processional Chariots",
+            era="7th-8th century CE (Pallava)",
             script_welcome=(
-                "Behold the carved solar chariot chronometer, {name}. Its spokes divide daylight into ritual prahars using the shadow of the central gnomon. "
-                "Scan the Chariot Wheel card or scrub the Era Slider to inspect its full 8th-century relief."
+                "Welcome to Pancha Rathas, {name}. Each of these five monuments resembles a chariot or ratha carved from a single sloping north-south granite monolith and named after the Pancha Pandavas and Draupadi. "
+                "Scan Card 2 (pancha_rathas) to unlock your verified photo card and historical facts."
             ),
-            script_details="Maritime navigators and temple astronomers tracked seasonal wind reversals from this elevated eastern plinth.",
-            next_step_guidance="Move 70 meters west into the covered corridor leading to Rajasimhesvara Shore Vimana.",
-            distance_to_next=70.0, walking_time_mins=1.6, shade_rating="PARTIAL SUN",
-            target_relic_code="chariot_wheel", badge_reward="Equinox Astronomer", xp_reward=100,
-            riddle_question="How many radial spokes form the main solar timekeeping wheel?",
-            riddle_options=["24 Spokes", "8 Spokes", "60 Spokes"],
-            riddle_answer="24 Spokes"
+            script_details="Historians note these monolithic structures were never consecrated because construction stopped; scholars associate the site with Narasimhavarman I (630-668 CE) or Narasimhavarman II (c. 690-725 CE).",
+            next_step_guidance="Continue 51 meters toward the open-air bas-relief of Arjuna's Penance (Descent of the Ganges).",
+            distance_to_next=51.0, walking_time_mins=1.3, shade_rating="PARTIAL SHADE",
+            target_relic_code="pancha_rathas", badge_reward="Ratha Monolith Crest", xp_reward=100,
+            riddle_question="Why were the five monolithic structures at Pancha Rathas never consecrated as temples?",
+            riddle_options=["They were never completed", "They sank underwater", "They were made of wood"],
+            riddle_answer="They were never completed",
+            source=SRC_RATHAS
         ),
         BlueprintStop(
             step_number=4, poi_id=4,
-            title="Rajasimhesvara Shore Vimana",
-            subtitle="Twin Structural Granite Spires",
-            era="715 CE • Pallava Engineering Zenith",
+            title="Arjuna's Penance (Descent of the Ganges)",
+            subtitle="96 by 43 ft Open-Air Bas-Relief",
+            era="7th-8th century CE (UNESCO 1984)",
             script_welcome=(
-                "You stand before the iconic twin granite spires of the Shore Temple, {name}! Built from interlocking stone blocks with zero lime mortar, "
-                "this five-tiered Dravidian vimana even withstood the 2004 Indian Ocean tsunami thanks to its stepped coastal bedrock foundation."
+                "Behold the giant open-air rock relief known locally as Arjuna's Penance, {name}! Measuring 96 by 43 feet (29 m by 13 m) across two monolithic rock boulders, it depicts the legend of the river Ganges descending from heaven led by Bhagiratha."
             ),
-            script_details="Its tall eastern tower honors Shiva while a subtle horizontal shrine nestled between the spires preserves sleeping Anantasayana Vishnu.",
-            next_step_guidance="Descend 51 meters along the tree-shaded avenue toward the Royal Lotus Hydraulic Basin.",
-            distance_to_next=51.0, walking_time_mins=1.2, shade_rating="COURTYARD SHADE",
-            target_relic_code="shore_temple_vimana", badge_reward="Vimana Architect", xp_reward=100,
-            riddle_question="How are the load-bearing granite blocks of the Shore Temple Vimana held together?",
-            riddle_options=["Dry interlocking stone joinery without mortar", "Roman volcanic cement", "Cast iron rivets"],
-            riddle_answer="Dry interlocking stone joinery without mortar"
+            script_details="The sculptural panel pairs stories from the Mahabharata and the Descent of the Ganges across an unbroken granite cliff canvas.",
+            next_step_guidance="Proceed 51 meters uphill along the shaded path toward Krishna's Butterball.",
+            distance_to_next=51.0, walking_time_mins=1.2, shade_rating="LIGHT TREE SHADE",
+            target_relic_code="arjunas_penance", badge_reward="Ganges Relief Observer", xp_reward=100,
+            riddle_question="Approximately how wide and tall is the Descent of the Ganges (Arjuna's Penance) open-air rock relief?",
+            riddle_options=["96 by 43 feet (29 m x 13 m)", "15 by 8 feet (4.5 m x 2.4 m)", "400 by 200 feet (120 m x 60 m)"],
+            riddle_answer="96 by 43 feet (29 m x 13 m)",
+            source=SRC_ARJUNA
         ),
         BlueprintStop(
             step_number=5, poi_id=5,
-            title="Royal Lotus Hydraulic Basin",
-            subtitle="Passive Evaporative Cooling Tank",
-            era="720 CE • Coastal Hydrology",
+            title="Krishna's Butterball (Vaan Irai Kal)",
+            subtitle="Protected Balanced Granite Boulder",
+            era="Natural ASI Protected Monument",
             script_welcome=(
-                "Feel the cooling sea breeze skimming across the Royal Lotus Basin, {name}. "
-                "Pallava engineers designed stepped stone cisterns around the sanctum to capture monsoon freshwater and push back saline intrusion."
+                "Here stands Krishna's Butterball, also called Vaan Irai Kal, {name}. It is a gigantic granite boulder resting on a short rocky incline on the Mahabalipuram hillock."
             ),
-            script_details="Evaporation across the sculpted lotus rim creates a microclimate up to 5 to 6 degrees Celsius cooler than exposed flagstones.",
-            next_step_guidance="Walk 58 meters south beneath the thick Arjuna's Penance Banyan Canopy.",
-            distance_to_next=58.0, walking_time_mins=1.3, shade_rating="COOL MIST & SHADE",
-            target_relic_code="lotus_basin", badge_reward="Hydrology Sage", xp_reward=80,
-            riddle_question="Approximately how much cooler does the shaded lotus basin terrace stay compared to open midday stone?",
-            riddle_options=["Around 6 degrees Celsius cooler", "0.5 degrees Celsius cooler", "25 degrees Celsius cooler"],
-            riddle_answer="Around 6 degrees Celsius cooler"
+            script_details="Surrounding the hillock's Pallava cave shrines, the balanced boulder is listed by the Archaeological Survey of India as a protected national monument.",
+            next_step_guidance="Descend 58 meters beneath tree cover toward Varaha Cave Temple for shaded stone rest.",
+            distance_to_next=58.0, walking_time_mins=1.4, shade_rating="EXPOSED HILLTOP",
+            target_relic_code="krishnas_butter_ball", badge_reward="Vaan Irai Kal Explorer", xp_reward=80,
+            riddle_question="By what Tamil name is Krishna's Butterball also locally known?",
+            riddle_options=["Vaan Irai Kal", "Pancha Ratha", "Yampuri"],
+            riddle_answer="Vaan Irai Kal",
+            source=SRC_BUTTERBALL
         ),
         BlueprintStop(
             step_number=6, poi_id=6,
-            title="Arjuna's Penance Banyan Canopy",
-            subtitle="Shaded Sanctuary & Nataraja Reliefs",
-            era="725 CE • Pallava Fine Arts",
+            title="Varaha Cave Temple (Adivaraha Mandapa)",
+            subtitle="Late 7th-Century Rock-Cut Cave Shelter",
+            era="Late 7th century CE (Pallava)",
             script_welcome=(
-                "Welcome into deep emerald tree shade, {name}! This banyan grove cools weary pilgrims beside cosmic Nataraja dance reliefs. "
-                "Point your camera at the Nataraja Relief card or rest beside the drinking fountain while enjoying spatial 3D acoustics."
+                "Step into the cool carved shade of Varaha Cave Temple, {name}. Dating from the late 7th century, this rock-cut cave mandapa highlights Vishnu in the boar incarnation of Varaha lifting Bhudevi, the earth goddess, from the sea."
             ),
-            script_details="In Pallava choreography, the raised Abhaya mudra hand offers fearless protection while the upper drum keeps cosmic rhythm.",
-            next_step_guidance="Take the final shaded colonnade ramp 42 meters northeast to Coromandel Sunset Bastion.",
-            distance_to_next=42.0, walking_time_mins=1.0, shade_rating="DEEP BANYAN SHADE",
-            target_relic_code="nataraja_relief", badge_reward="Nataraja Rhythm Crest", xp_reward=90,
-            riddle_question="In the Nataraja relief, what instrument in the upper right hand sounds the pulse of creation?",
-            riddle_options=["Damaru (Hourglass Drum)", "Veena Lute", "Conch Horn"],
-            riddle_answer="Damaru (Hourglass Drum)"
+            script_details="Located in the hill area north of the Pancha Rathas and Shore Temple, the mandapa showcases classic late-7th-century Pallava rock-cut cave architecture.",
+            next_step_guidance="Follow the shaded hill path toward Mahishasuramardini Mandapa near the lighthouse.",
+            distance_to_next=82.0, walking_time_mins=1.8, shade_rating="HIGH CAVE SHADE",
+            target_relic_code="mahishasuramardini_cave", badge_reward="Varaha Cave Scholar", xp_reward=90,
+            riddle_question="Which prominent carved scene appears inside Varaha Cave Temple?",
+            riddle_options=["Vishnu as Varaha lifting Bhudevi from the sea", "Chariot Wheel of Konark", "Sanchi Torana Gateway"],
+            riddle_answer="Vishnu as Varaha lifting Bhudevi from the sea",
+            source=SRC_VARAHA
         ),
         BlueprintStop(
             step_number=7, poi_id=7,
-            title="Coromandel Sunset Bastion",
-            subtitle="Bay of Bengal Overlook & Finale",
-            era="728 CE • UNESCO Panorama",
+            title="Mahishasuramardini Mandapa (Yampuri)",
+            subtitle="Late 7th-Century Hilltop Cave Temple",
+            era="Late 7th century CE (Pallava)",
             script_welcome=(
-                "Bravo, {name}! You have completed all seven heritage stations across Mahabalipuram Shore Temple! "
-                "Snap a commemorative AR memory photo here and download your official illustrated PDF Travel Journal."
+                "Congratulations on reaching Stop 7, Mahishasuramardini Mandapa (also called Yampuri), {name}! Dating from the late 7th century near the lighthouse hill, its cave sanctums preserve carved panels of Durga slaying Mahishasura, Vishnu reclining on Adishesha, and Shiva."
             ),
-            script_details="Declared a UNESCO World Heritage Group of Monuments in 1984, Mahabalipuram inspired Southeast Asian stone temples across Cambodia and Java.",
-            next_step_guidance="Tap Finish Tour or Download PDF Travel Journal to seal your Pallava expedition!",
-            distance_to_next=0.0, walking_time_mins=0.0, shade_rating="COVERED PERGOLA",
-            target_relic_code="chariot_wheel", badge_reward="Shore Temple Master Seal", xp_reward=150,
-            riddle_question="In what year were the Group of Monuments at Mahabalipuram inscribed as a UNESCO World Heritage Site?",
-            riddle_options=["1984", "1947", "2008"],
-            riddle_answer="1984"
+            script_details="Three carved panels inside the cave mandapa walls remain hallmark achievements of Pallava rock-cut art within the UNESCO site inscribed in 1984.",
+            next_step_guidance="Scan Card 5 (mahishasuramardini_cave) and tap Download PDF Travel Journal to export your completed journey.",
+            distance_to_next=0.0, walking_time_mins=0.0, shade_rating="CAVE INTERIOR SHADE",
+            target_relic_code="mahishasuramardini_cave", badge_reward="Mahabalipuram Heritage Crest", xp_reward=150,
+            riddle_question="Which three iconic sculptural panels occupy the cave walls of Mahishasuramardini Mandapa?",
+            riddle_options=[
+                "Durga slaying Mahishasura, reclining Vishnu on Adishesha, and Shiva",
+                "Rama, Lakshmana, and Ravana's aerial chariot",
+                "Ashokan Lion Capital and Buddhist wheel"
+            ],
+            riddle_answer="Durga slaying Mahishasura, reclining Vishnu on Adishesha, and Shiva",
+            source=SRC_MAHISHASURA
         )
     ]
     for s in stops_data:
         db.add(s)
     db.commit()
 
-    print("[Database] Seeding PathEdges (Dual Route Sun vs Shaded Topology)...")
+    # Preserves distinct sun-exposed direct routes vs shaded hillside/cave-shelter perimeter routes
     edges_data = [
-        # Shaded Perimeter Sanctuary Ring
-        PathEdge(source_id=1, target_id=2, distance_meters=47.0, base_shade_factor=0.92, path_type="colonnade"),
-        PathEdge(source_id=2, target_id=3, distance_meters=67.0, base_shade_factor=0.72, path_type="colonnade"),
-        PathEdge(source_id=3, target_id=4, distance_meters=51.0, base_shade_factor=0.80, path_type="covered_corridor"),
+        PathEdge(source_id=1, target_id=2, distance_meters=47.0, base_shade_factor=0.65, path_type="coastal_walk"),
+        PathEdge(source_id=2, target_id=3, distance_meters=67.0, base_shade_factor=0.72, path_type="tree_avenue"),
+        PathEdge(source_id=3, target_id=4, distance_meters=51.0, base_shade_factor=0.80, path_type="tree_avenue"),
         PathEdge(source_id=4, target_id=5, distance_meters=51.0, base_shade_factor=0.78, path_type="tree_avenue"),
-        PathEdge(source_id=5, target_id=6, distance_meters=58.0, base_shade_factor=0.90, path_type="tree_avenue"),
+        PathEdge(source_id=5, target_id=6, distance_meters=58.0, base_shade_factor=0.90, path_type="cave_approach"),
         PathEdge(source_id=5, target_id=7, distance_meters=82.0, base_shade_factor=0.82, path_type="tree_avenue"),
         PathEdge(source_id=1, target_id=6, distance_meters=76.0, base_shade_factor=0.94, path_type="tree_avenue"),
-        PathEdge(source_id=2, target_id=4, distance_meters=70.0, base_shade_factor=0.75, path_type="monument_shadow"),
-        # Direct Unshaded Open-Sun Courtyard Diagonals (Shortest physical distance, high solar heat)
-        PathEdge(source_id=1, target_id=4, distance_meters=114.0, base_shade_factor=0.10, path_type="open_courtyard"),
+        PathEdge(source_id=2, target_id=4, distance_meters=70.0, base_shade_factor=0.75, path_type="tree_avenue"),
+        PathEdge(source_id=6, target_id=7, distance_meters=125.0, base_shade_factor=0.88, path_type="cave_shelter"),
+        # Direct unshaded open-stone diagonals
+        PathEdge(source_id=1, target_id=4, distance_meters=114.0, base_shade_factor=0.10, path_type="open_stone"),
         PathEdge(source_id=4, target_id=7, distance_meters=42.0, base_shade_factor=0.12, path_type="open_stone"),
-        PathEdge(source_id=1, target_id=3, distance_meters=113.0, base_shade_factor=0.12, path_type="open_courtyard"),
+        PathEdge(source_id=1, target_id=3, distance_meters=113.0, base_shade_factor=0.12, path_type="open_stone"),
         PathEdge(source_id=3, target_id=7, distance_meters=57.0, base_shade_factor=0.15, path_type="open_stone"),
-        PathEdge(source_id=6, target_id=7, distance_meters=125.0, base_shade_factor=0.85, path_type="colonnade"),
     ]
     for e in edges_data:
         db.add(e)
     db.commit()
 
-    print("[Database] Seeding 5 Printable Carving Cards / RelicArtifacts...")
+    # Exact 5 Carving Card RelicArtifacts matching carving_signatures.json classes 1..5
     relics_data = [
         RelicArtifact(
             code="shore_temple_vimana",
-            name="Rajasimhesvara Shore Temple Vimana",
-            poi_id=4,
-            detection_labels=["shore_temple_vimana", "vimana", "spire", "temple", "sanctum"],
-            architectural_style="Pallava Dravidian Granite (700-728 CE)",
-            period="700-728 CE",
-            story="Built of interlocking coastal granite without mortar, the five-tiered Rajasimhesvara Vimana anchors one of South India's earliest structural stone temples.",
-            fun_fact="This structural stone shrine survived centuries of cyclone surges including the December 2004 Indian Ocean tsunami.",
-            audio_narrative="Drag the Era Slider to watch eroded coastal blocks reconstruct into painted Pallava plaster towers."
-        ),
-        RelicArtifact(
-            code="chariot_wheel",
-            name="Solar Chariot Wheel & Gnomon",
-            poi_id=3,
-            detection_labels=["chariot_wheel", "sundial_pillar", "wheel", "clock", "sundial", "gnomon"],
-            architectural_style="Pallava Archaeo-Astronomy",
-            period="712 CE",
-            story="Twenty-four finely chiseled stone spokes transform sunlight angles into ritual time intervals and seasonal solstitial warnings for Coromandel mariners.",
-            fun_fact="At solar noon around the summer solstice, the vertical gnomon shadow shrinks right down onto the brass plinth axis.",
-            audio_narrative="Notice how each spoke corresponds to a daily solar watch interval."
-        ),
-        RelicArtifact(
-            code="yali_pillar",
-            name="Monolithic Roaring Yali Pillar",
+            name="Shore Temple, Mahabalipuram",
             poi_id=2,
-            detection_labels=["yali_pillar", "carved_elephant", "yali", "elephant", "pillar", "lion", "statue"],
-            architectural_style="Pallava Charonockite Pillar Carving",
-            period="705 CE",
-            story="Seated at the base of tall octagonal granite shafts, the rearing Yali fuses lion ferocity, elephant wisdom, and serpentine agility to guard sacred precincts.",
-            fun_fact="Pillar galleries along the outer prakara cut midday stone surface heat while framing ocean breezes.",
-            audio_narrative="Inspect the carved mane curls chiseled by 8th-century Pallava master guilds."
+            detection_labels=["shore_temple_vimana"],
+            architectural_style="Structural Granite Temple (Dravidian Pallava)",
+            period="c. 725 AD (8th century AD)",
+            story="Built with granite blocks overlooking the Bay of Bengal under Pallava king Narasimhavarman II, the Shore Temple is one of Southern India's oldest structural stone temples.",
+            fun_fact="Classified as part of the UNESCO World Heritage Site at Mahabalipuram since 1984.",
+            audio_narrative="Observe the structural granite tower overlooking the Bay of Bengal.",
+            source=SRC_SHORE
         ),
         RelicArtifact(
-            code="nataraja_relief",
-            name="Cosmic Nataraja Sanctuary Frieze",
-            poi_id=6,
-            detection_labels=["nataraja_relief", "dancing_shiva", "nataraja", "dancer", "person", "statue"],
-            architectural_style="Pallava Classical Dance Sculpture",
-            period="725 CE",
-            story="Framed inside an arching stone aureole, the four-armed Nataraja balances creation (damaru drum) and transformation while calming seekers beneath the Abhaya gesture.",
-            fun_fact="Notice how the center of gravity aligns vertically down through the supporting lotus pedestal.",
-            audio_narrative="Each finger mudra in this granite panel encodes a classic verse of Bharatanatyam."
+            code="pancha_rathas",
+            name="Pancha Rathas, Mahabalipuram",
+            poi_id=3,
+            detection_labels=["pancha_rathas"],
+            architectural_style="Monolithic Indian Rock-Cut Architecture",
+            period="7th-8th century CE",
+            story="Five monolithic chariot-shaped monuments carved over single north-south sloping granite boulders, named after the Pandavas and Draupadi.",
+            fun_fact="Though often called temples, the structures were never consecrated because they were never completed.",
+            audio_narrative="Each ratha is carved out of a single sloping granite stone monolith.",
+            source=SRC_RATHAS
         ),
         RelicArtifact(
-            code="lotus_basin",
-            name="Royal Lotus Hydraulic Cistern",
+            code="arjunas_penance",
+            name="Arjuna's Penance (Descent of the Ganges)",
+            poi_id=4,
+            detection_labels=["arjunas_penance"],
+            architectural_style="Pallava Open-Air Bas-Relief Sculpture",
+            period="7th-8th century CE",
+            story="Measuring 96 by 43 feet (29 m by 13 m) across two monolithic rock boulders, this relief portrays the descent of the river Ganges led by Bhagiratha and Arjuna's Penance.",
+            fun_fact="Inscribed in 1984 as part of the UNESCO Group of Monuments at Mahabalipuram.",
+            audio_narrative="Look at the narrative figures sculpted across two monumental boulders.",
+            source=SRC_ARJUNA
+        ),
+        RelicArtifact(
+            code="krishnas_butter_ball",
+            name="Krishna's Butterball (Vaan Irai Kal)",
             poi_id=5,
-            detection_labels=["lotus_basin", "lotus_fountain", "lotus", "fountain", "basin", "bowl"],
-            architectural_style="Pallava Passive Evaporative Hydrology",
-            period="720 CE",
-            story="Fed by rainwater catchment troughs and granite conduits, the carved eight-petaled lotus cistern chills coastal winds naturally before they sweep the temple hall.",
-            fun_fact="Evaporative convection drops terrace air temperatures by roughly 6 degrees Celsius under peak afternoon sun.",
-            audio_narrative="Take a moment beside these cooling lotus petals before finishing the final leg."
-        )
+            detection_labels=["krishnas_butter_ball"],
+            architectural_style="Protected Natural Granite Boulder",
+            period="ASI Protected National Monument",
+            story="A gigantic balancing granite boulder resting on a short rocky incline at Mamallapuram alongside 7th- and 8th-century Pallava monuments.",
+            fun_fact="Known locally as Vaan Irai Kal and listed as a protected monument by the Archaeological Survey of India.",
+            audio_narrative="Notice how the boulder rests stably along the smooth granite incline.",
+            source=SRC_BUTTERBALL
+        ),
+        RelicArtifact(
+            code="mahishasuramardini_cave",
+            name="Mahishasuramardini Mandapa (Cave Panel)",
+            poi_id=7,
+            detection_labels=["mahishasuramardini_cave"],
+            architectural_style="Pallava Rock-Cut Cave Temple",
+            period="Late 7th century CE",
+            story="Known also as Yampuri, this rock-cut cave temple near the lighthouse hill preserves three iconic wall reliefs: Durga slaying Mahishasura, Vishnu reclining on Adishesha, and Shiva.",
+            fun_fact="Part of the UNESCO Group of Monuments at Mahabalipuram inscribed in 1984.",
+            audio_narrative="Inspect the sculpted multi-armed Durga panel carved inside the cave sanctum.",
+            source=SRC_MAHISHASURA
+        ),
     ]
     for r in relics_data:
         db.add(r)
     db.commit()
 
-    print("[Database] Seeding ScavengerQuests...")
     quests_data = [
         ScavengerQuest(
-            quest_id="quest_yali",
-            title="Guardian of the Colonnade",
-            riddle="Half lion, half elephant, I roar silently beneath a cool granite colonnade. Scan my pillar card!",
-            target_poi_slug="yali_courtyard",
-            target_relic_code="yali_pillar",
-            hint="Stop 2: Monolithic Yali Pillars Gallery",
-            badge_name="Cloud Rider Yali Crest",
-            badge_icon="fa-shield-halved",
-            points=150
+            quest_id="quest_shore",
+            title="By the Bay of Bengal",
+            riddle="Built with blocks of granite rather than carved out of bedrock, my structural shrines face the sea since Narasimhavarman II's reign.",
+            target_poi_slug="shore_temple_vimana",
+            target_relic_code="shore_temple_vimana",
+            hint="Scan Card LUNA-CARD-01 (shore_temple_vimana)",
+            badge_name="Shore Temple Keeper",
+            badge_icon="fa-landmark",
+            points=120,
+            source=SRC_SHORE
         ),
         ScavengerQuest(
-            quest_id="quest_chariot",
-            title="Shadow of the Solstice",
-            riddle="Twenty-four granite spokes measure Coromandel noon shadows with silent precision.",
-            target_poi_slug="chariot_terrace",
-            target_relic_code="chariot_wheel",
-            hint="Stop 3: Chariot Wheel Solar Chronometer",
-            badge_name="Solstice Timekeeper",
-            badge_icon="fa-hourglass-start",
-            points=200
+            quest_id="quest_rathas",
+            title="Five Unconsecrated Chariots",
+            riddle="Five monolithic granite chariots resting on a north-south sloping stone ridge, named after the Pandavas and Draupadi.",
+            target_poi_slug="pancha_rathas",
+            target_relic_code="pancha_rathas",
+            hint="Scan Card LUNA-CARD-02 (pancha_rathas)",
+            badge_name="Ratha Monolith Seeker",
+            badge_icon="fa-compass",
+            points=150,
+            source=SRC_RATHAS
         ),
         ScavengerQuest(
-            quest_id="quest_lotus",
-            title="Cooling Oasis of Pallava Waters",
-            riddle="Eight carved stone petals hold chilled rainwater steps away from ocean salt spray.",
-            target_poi_slug="lotus_basin",
-            target_relic_code="lotus_basin",
-            hint="Stop 5: Royal Lotus Hydraulic Basin",
-            badge_name="Hydraulic Sage Crest",
-            badge_icon="fa-water",
-            points=120
+            quest_id="quest_penance",
+            title="Stone Canvas of the Ganges",
+            riddle="Measuring 96 by 43 feet across two granite boulders, I recount Bhagiratha guiding the sacred river down to earth.",
+            target_poi_slug="arjunas_penance",
+            target_relic_code="arjunas_penance",
+            hint="Scan Card LUNA-CARD-03 (arjunas_penance)",
+            badge_name="Bas-Relief Chronicler",
+            badge_icon="fa-scroll",
+            points=160,
+            source=SRC_ARJUNA
         )
     ]
     for q in quests_data:
         db.add(q)
     db.commit()
 
-    print("[Database] Seeded 7 Mahabalipuram Stops, 12 Dual-Route Edges, 5 Carving Cards, and 3 Quests!")
+    print("[Database] Seeded 7 Sourced Mahabalipuram Stops, 13 Paths, 5 Carving Cards, and 3 Quests!")
     db.close()
+
 
 if __name__ == "__main__":
     seed_database(force_reset=True)

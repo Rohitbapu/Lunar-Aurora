@@ -1,62 +1,83 @@
 {
-  "model_version": "lunar-aurora-mahabalipuram-v2",
+  "model_version": "lunar-aurora-mahabalipuram-mobilenetv2",
   "tfjs_model_url": "/app/assets/vision_model/model.json",
+  "classes_manifest_url": "/app/assets/vision_model/model_classes.json",
   "confidence_threshold": 0.82,
+  "input_size": [224, 224],
   "classes": [
     {
+      "class_index": 0,
       "id": "background",
-      "label": "Background / Courtyard Stone",
-      "is_relic": false
+      "label": "Background / Non-Card Surface",
+      "is_relic": false,
+      "image_url": null,
+      "model_url": null,
+      "is_illustrative_model": false,
+      "model_label": null
     },
     {
+      "class_index": 1,
       "id": "shore_temple_vimana",
-      "label": "Shore Temple East Vimana",
+      "label": "Shore Temple, Mahabalipuram",
       "is_relic": true,
-      "step_hint": [1, 4],
-      "model_url": "/app/assets/models/Grand_Solstice_Sun_Temple.glb",
-      "accent_hue": "gold",
       "card_code": "LUNA-CARD-01",
-      "keywords": ["building", "tower", "castle", "church", "clock", "shore_temple_vimana"]
+      "image_url": "/static/cards/01_shore_temple_vimana.jpg",
+      "model_url": "/app/assets/models/Grand_Solstice_Sun_Temple.glb",
+      "is_illustrative_model": true,
+      "model_label": "Illustrative model (procedural placeholder — not a 3D scan)",
+      "source": "https://en.wikipedia.org/wiki/Shore_Temple"
     },
     {
-      "id": "chariot_wheel",
-      "label": "Solar Chariot Wheel & Gnomon",
+      "class_index": 2,
+      "id": "pancha_rathas",
+      "label": "Pancha Rathas, Mahabalipuram",
       "is_relic": true,
-      "step_hint": [3, 7],
-      "model_url": "/app/assets/models/Solstitial_Lotus_Gnomon.glb",
-      "accent_hue": "amber",
       "card_code": "LUNA-CARD-02",
-      "keywords": ["clock", "wheel", "bicycle", "umbrella", "frisbee", "sports ball", "chariot_wheel"]
+      "image_url": "/static/cards/02_pancha_rathas.jpg",
+      "model_url": null,
+      "is_illustrative_model": false,
+      "model_label": null,
+      "todo_model": "TODO: Drop team-made pancha_rathas.glb into src/frontend_webxr/assets/models/",
+      "source": "https://en.wikipedia.org/wiki/Pancha_Rathas"
     },
     {
-      "id": "yali_pillar",
-      "label": "Monolithic Yali Pillar Relief",
+      "class_index": 3,
+      "id": "arjunas_penance",
+      "label": "Arjuna's Penance (Descent of the Ganges)",
       "is_relic": true,
-      "step_hint": [2],
-      "model_url": "/app/assets/models/Celestial_Airavata_Sculpture.glb",
-      "accent_hue": "cyan",
       "card_code": "LUNA-CARD-03",
-      "keywords": ["elephant", "bear", "dog", "horse", "cow", "vase", "yali_pillar"]
+      "image_url": "/static/cards/03_arjunas_penance.jpg",
+      "model_url": null,
+      "is_illustrative_model": false,
+      "model_label": null,
+      "todo_model": "TODO: Drop team-made arjunas_penance.glb into src/frontend_webxr/assets/models/",
+      "source": "https://en.wikipedia.org/wiki/Descent_of_the_Ganges_(Mahabalipuram)"
     },
     {
-      "id": "nataraja_relief",
-      "label": "Cosmic Nataraja Sanctuary Frieze",
+      "class_index": 4,
+      "id": "krishnas_butter_ball",
+      "label": "Krishna's Butterball (Vaan Irai Kal)",
       "is_relic": true,
-      "step_hint": [6],
-      "model_url": "/app/assets/models/Celestial_Airavata_Sculpture.glb",
-      "accent_hue": "teal",
       "card_code": "LUNA-CARD-04",
-      "keywords": ["person", "sculpture", "statue", "nataraja_relief"]
+      "image_url": "/static/cards/04_krishnas_butter_ball.jpg",
+      "model_url": null,
+      "is_illustrative_model": false,
+      "model_label": null,
+      "todo_model": "TODO: Drop team-made krishnas_butter_ball.glb into src/frontend_webxr/assets/models/",
+      "source": "https://en.wikipedia.org/wiki/Krishna's_Butterball"
     },
     {
-      "id": "lotus_basin",
-      "label": "Royal Lotus Hydraulic Cistern",
+      "class_index": 5,
+      "id": "mahishasuramardini_cave",
+      "label": "Mahishasuramardini Cave Temple Panel",
       "is_relic": true,
-      "step_hint": [5],
-      "model_url": "/app/assets/models/Solstitial_Lotus_Gnomon.glb",
-      "accent_hue": "emerald",
       "card_code": "LUNA-CARD-05",
-      "keywords": ["bowl", "cup", "potted plant", "sink", "toilet", "lotus_basin"]
+      "image_url": "/static/cards/05_mahishasuramardini_cave.jpg",
+      "model_url": null,
+      "is_illustrative_model": false,
+      "model_label": null,
+      "todo_model": "TODO: Drop team-made mahishasuramardini_cave.glb into src/frontend_webxr/assets/models/",
+      "source": "https://en.wikipedia.org/wiki/Mahishasuramardini_Mandapa"
     }
   ]
 }
