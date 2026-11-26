@@ -161,7 +161,80 @@ class TourManager {
         this.siteEdges = ov.edges || [];
         this.siteNodes = ov.nodes || [];
       }
+      if (window.locationTracker) {
+        if (this.siteNodes && this.siteNodes.length > 0) {
+          window.locationTracker.loadRadiiFromApi(this.siteNodes);
+        } else if (this.blueprintStops && this.blueprintStops.length > 0) {
+          window.locationTracker.loadRadiiFromApi(this.blueprintStops);
+        }
+      }
+      this.renderManualCheckinButtons();
     } catch (e) {}
+  }
+
+  renderManualCheckinButtons() {
+    const grid = document.getElementById('manual-checkin-grid');
+    if (!grid || !Array.isArray(this.blueprintStops) || this.blueprintStops.length === 0) return;
+    grid.innerHTML = '';
+    for (const s of this.blueprintStops) {
+      const btn = document.createElement('button');
+      const isCurrent = s.step_number === this.currentStep;
+      const isVisited = this.visitedSteps.includes(s.step_number);
+      const radLabel = Number.isFinite(Number(s.arrival_radius_m)) ? `${s.arrival_radius_m}m` : '';
+      btn.className = 'manual-checkin-btn';
+      btn.setAttribute('data-checkin-step', String(s.step_number));
+      btn.style.cssText = isCurrent
+        ? 'background: rgba(0,229,255,0.22); border: 1px solid #00e5ff; color: #ffffff; font-size: 0.68rem; padding: 5px 6px; border-radius: 8px; cursor: pointer;'
+        : (isVisited
+          ? 'background: rgba(0,230,118,0.14); border: 1px solid #00e676; color: #e0f7fa; font-size: 0.68rem; padding: 5px 6px; border-radius: 8px; cursor: pointer;'
+          : 'background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); color: #cfd8dc; font-size: 0.68rem; padding: 5px 6px; border-radius: 8px; cursor: pointer;');
+      const shortTitle = (s.title || '').split('(')[0].trim().split(' ').slice(0, 2).join(' ');
+      btn.textContent = `S${s.step_number} ${shortTitle}: I'm here${radLabel ? ` (${radLabel})` : ''}`;
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        await this.manualCheckIn(s.step_number);
+      };
+      grid.appendChild(btn);
+    }
+  }
+
+  async manualCheckIn(stepNumber) {
+    const step = Number(stepNumber);
+    if (!this.sessionId) return;
+    try {
+      const res = await fetch('/api/session/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: this.sessionId, step_number: step })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        this.currentStep = data.current_step;
+        this.visitedSteps = data.visited_steps || this.visitedSteps;
+        this.totalXp = data.total_xp;
+        this.currentStopData = data.stop;
+        this.saveToStorage();
+
+        if (window.locationTracker) {
+          window.locationTracker.teleportToStop(step, false);
+        }
+        if (window.arScene) window.arScene.hideRelicModel();
+        const eraPanel = document.getElementById('era-reconstruction-panel');
+        if (eraPanel) eraPanel.style.display = 'none';
+
+        this.updateTopHUD();
+        this.renderManualCheckinButtons();
+        this.playCurrentStopNarration();
+        if (typeof renderInteractiveBlueprintMap === 'function') {
+          await renderInteractiveBlueprintMap();
+        }
+        if (typeof showNotification === 'function') {
+          showNotification(`📍 Checked in at Stop ${step}: ${data.stop.title}`);
+        }
+      }
+    } catch (e) {
+      console.warn("Manual check-in error:", e);
+    }
   }
 
   updateTopHUD() {
@@ -175,7 +248,10 @@ class TourManager {
 
     const guidanceMeta = document.getElementById('next-stop-meta');
     if (guidanceMeta && this.currentStopData) {
-      guidanceMeta.textContent = `Next: ~${this.currentStopData.distance_to_next}m (${this.currentStopData.walking_time_mins} min) • ${this.currentStopData.shade_rating}`;
+      const nextPart = (this.currentStopData.distance_to_next || 0) > 0
+        ? `Next: ~${this.currentStopData.distance_to_next}m (${this.currentStopData.walking_time_mins} min) • ${this.currentStopData.shade_rating}`
+        : `Final Stop (7/7) • ${this.currentStopData.shade_rating}`;
+      guidanceMeta.textContent = `${nextPart} | One-way trail: 4.13 km (~59 min walk)`;
     }
   }
 

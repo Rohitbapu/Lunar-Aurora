@@ -1,4 +1,5 @@
 import io
+import math
 import base64
 from urllib.parse import urlparse, parse_qs
 from PIL import Image
@@ -30,8 +31,11 @@ def run_tests():
     assert client.get("/health").status_code == 200
     ov = client.get("/api/site/overview")
     assert ov.status_code == 200 and "Mahabalipuram" in ov.json()["site_name"]
-    assert all("OpenStreetMap" in (n.get("coordinate_source") or "") for n in ov.json()["nodes"])
-    assert all("OpenStreetMap" in (e.get("distance_source") or "") for e in ov.json()["edges"])
+    nodes = ov.json()["nodes"]
+    edges = ov.json()["edges"]
+    assert all("OpenStreetMap" in (n.get("coordinate_source") or "") for n in nodes)
+    assert all("OpenStreetMap" in (e.get("distance_source") or "") for e in edges)
+    assert all(n.get("model_asset_url") is None for n in nodes)
     for img_name in [
         "01_shore_temple_vimana.jpg",
         "02_pancha_rathas.jpg",
@@ -82,7 +86,56 @@ def run_tests():
     r_bp = client.get(f"/api/session/{session_id}/blueprint")
     assert r_bp.status_code == 200 and r_bp.json()["total_steps"] == 7
     assert all(s["source"] and s["source"].startswith("https://") for s in r_bp.json()["stops"])
-    print("   -> OK (all 7 stops have valid source URLs)")
+    assert all(s["model_asset_url"] is None for s in r_bp.json()["stops"])
+    print("   -> OK (all 7 stops have valid source URLs and GLB hidden)")
+
+    print("5b. Verifying Per-Stop Geofence Radii, Zero Overlap (21 Pairs) & Inside/Outside Arrival:")
+    def _haversine_m(lat1, lon1, lat2, lon2):
+        r = 6371000.0
+        p1, p2 = math.radians(lat1), math.radians(lat2)
+        dp, dl = math.radians(lat2 - lat1), math.radians(lon2 - lon1)
+        a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+        return 2.0 * r * math.asin(math.sqrt(a))
+
+    expected_radii = {1: 20.0, 2: 45.0, 3: 75.0, 4: 25.0, 5: 25.0, 6: 25.0, 7: 30.0}
+    print("   Pair  | Straight-Line (m) | r_i + r_j (m) | Margin (m)")
+    for i in range(len(nodes)):
+        assert nodes[i]["arrival_radius_m"] == expected_radii[nodes[i]["id"]]
+        for j in range(i + 1, len(nodes)):
+            n1, n2 = nodes[i], nodes[j]
+            d = _haversine_m(n1["latitude"], n1["longitude"], n2["latitude"], n2["longitude"])
+            r_sum = n1["arrival_radius_m"] + n2["arrival_radius_m"]
+            margin = d - r_sum
+            assert margin > 0.0, f"Zone overlap between S{n1['id']} and S{n2['id']}: {margin:.2f}m"
+            print(f"   S{n1['id']}-S{n2['id']} | {d:17.2f} | {r_sum:13.1f} | {margin:+10.2f}")
+
+    # Test one point 1 m inside and one point 1 m outside each stop radius
+    def _arrived_stop(lat, lon):
+        best = None
+        for n in nodes:
+            dist = _haversine_m(lat, lon, n["latitude"], n["longitude"])
+            if dist <= n["arrival_radius_m"]:
+                if best is None or dist < best[1]:
+                    best = (n["id"], dist)
+        return best
+
+    m_per_deg_lat = 111320.0
+    print("   Stop | Radius (m) | Inside Test (+(r-1)m N)      | Outside Test (+(r+1)m N)")
+    for n in nodes:
+        r = n["arrival_radius_m"]
+        lat_in = n["latitude"] + (r - 1.0) / m_per_deg_lat
+        lat_out = n["latitude"] + (r + 1.0) / m_per_deg_lat
+        res_in = _arrived_stop(lat_in, n["longitude"])
+        res_out = _arrived_stop(lat_out, n["longitude"])
+        assert res_in is not None and res_in[0] == n["id"], f"Inside failed for S{n['id']}: {res_in}"
+        assert res_out is None, f"Outside unexpectedly arrived at {res_out} for S{n['id']}"
+        print(f"   S{n['id']}   | {r:10.1f} | ARRIVED S{res_in[0]} ({res_in[1]:5.2f} m)    | NONE ({r + 1.0:.2f} m > {r:.1f} m)")
+
+    # Test manual "I'm here" check-in endpoint for Stop 5
+    r_chk = client.post("/api/session/checkin", json={"session_id": session_id, "step_number": 5})
+    assert r_chk.status_code == 200 and r_chk.json()["current_step"] == 5
+    assert 5 in r_chk.json()["visited_steps"]
+    client.post("/api/session/checkin", json={"session_id": session_id, "step_number": 2})
 
     print("6. Testing Dual Telemetry (Shortest Sun vs NOAA-Shaded Route) & Cave Shade Rest Routing:")
     r_tel = client.get("/api/site/telemetry?start_id=1&target_id=7&hour=12.0&date=2027-01-11")

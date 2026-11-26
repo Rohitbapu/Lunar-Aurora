@@ -163,6 +163,42 @@ class SessionService:
             "stop": stop_data
         }
 
+    async def checkin_stop(self, db: Session, session_id: str, step_number: int) -> Dict[str, Any]:
+        session = db.query(TourSession).filter(TourSession.session_id == session_id).first()
+        if not session:
+            raise ValueError("Session not found")
+        stop = db.query(BlueprintStop).filter(BlueprintStop.step_number == step_number).first()
+        if not stop:
+            raise ValueError(f"Stop {step_number} not found")
+
+        poi = db.query(POINode).filter(POINode.id == stop.poi_id).first()
+        session.current_step = step_number
+        visited = list(session.visited_steps or [])
+        newly_visited = step_number not in visited
+        if newly_visited:
+            visited.append(step_number)
+            session.visited_steps = sorted(visited)
+            session.total_xp += 75
+        session.last_active_at = datetime.utcnow()
+        db.commit()
+
+        stop_data = self._format_stop(stop, poi, session.customer_name, session.preferred_language)
+        stop_data["audio_url"] = await tts_service.generate_speech(
+            stop_data["personalized_welcome"],
+            language=session.preferred_language,
+            fallback_cache_key=f"stop_{stop.step_number}"
+        )
+
+        return {
+            "session_id": session.session_id,
+            "customer_name": session.customer_name,
+            "current_step": step_number,
+            "visited_steps": session.visited_steps,
+            "total_xp": session.total_xp,
+            "newly_visited": newly_visited,
+            "stop": stop_data
+        }
+
     def answer_riddle(self, db: Session, session_id: str, step_number: int, selected_answer: str) -> Dict[str, Any]:
         session = db.query(TourSession).filter(TourSession.session_id == session_id).first()
         if not session:
@@ -277,7 +313,7 @@ class SessionService:
         pdf.set_text_color(244, 196, 48)
         pdf.set_font("Helvetica", "", 11)
         pdf.set_x(14)
-        pdf.cell(0, 7, _pdf_safe("Mahabalipuram Shore Temple Heritage Sanctuary (UNESCO World Heritage Site)"), ln=True)
+        pdf.cell(0, 7, _pdf_safe("Group of Monuments at Mahabalipuram (4.13 km / ~59 min One-Way Trail)"), ln=True)
 
         pdf.ln(14)
         pdf.set_text_color(20, 28, 42)
@@ -328,16 +364,19 @@ class SessionService:
         pdf.set_x(pdf.l_margin)
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_text_color(0, 100, 130)
-        pdf.cell(pdf.epw, 8, _pdf_safe("7-Stop Mahabalipuram Itinerary Log"), new_x="LMARGIN", new_y="NEXT")
+        total_route_m = round(sum((s.distance_to_next or 0.0) for s in stops), 1)
+        total_walk_min = round(sum((s.walking_time_mins or 0.0) for s in stops), 1)
+        pdf.cell(pdf.epw, 8, _pdf_safe(f"7-Stop Mahabalipuram Itinerary ({total_route_m} m / ~{total_walk_min} min walking)"), new_x="LMARGIN", new_y="NEXT")
         visited_set = set(session.visited_steps or [])
         solved_set = set(session.solved_riddles or [])
         for s in stops:
             mark = "[VISITED]" if s.step_number in visited_set else "[PLANNED]"
             riddle_mark = " | Riddle Solved" if s.step_number in solved_set else ""
+            leg_note = f" | Next leg: {s.distance_to_next} m (~{s.walking_time_mins} min)" if (s.distance_to_next or 0) > 0 else ""
             pdf.set_x(pdf.l_margin)
             pdf.set_font("Helvetica", "B", 10)
             pdf.set_text_color(20, 28, 42)
-            pdf.cell(pdf.epw, 6, _pdf_safe(f"{s.step_number}. {s.title} ({s.era}) {mark}{riddle_mark}"), new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(pdf.epw, 6, _pdf_safe(f"{s.step_number}. {s.title} ({s.era}) {mark}{riddle_mark}{leg_note}"), new_x="LMARGIN", new_y="NEXT")
             pdf.set_x(pdf.l_margin)
             pdf.set_font("Helvetica", "", 9)
             pdf.set_text_color(70, 80, 95)
@@ -440,8 +479,8 @@ class SessionService:
         completed_count = len(session.visited_steps or [])
 
         farewell = (
-            f"Thank you, {session.customer_name}! You have completed the 7-stop Pallava journey across Mahabalipuram Shore Temple. "
-            f"You explored {completed_count} of {total_stops} sacred stations and earned {session.total_xp} XP. "
+            f"Thank you, {session.customer_name}! You have completed the 7-stop Pallava trail across the Group of Monuments at Mahabalipuram (~4.13 km one-way trail). "
+            f"You explored {completed_count} of {total_stops} monuments and earned {session.total_xp} XP. "
             "Download your illustrated PDF Travel Journal below!"
         )
 
@@ -481,8 +520,9 @@ class SessionService:
             "poi_name": poi.name if poi else stop.title,
             "x": poi.x if poi else 0.0,
             "y": poi.y if poi else 0.0,
-            "latitude": poi.latitude if poi else 12.6165,
-            "longitude": poi.longitude if poi else 80.1993,
+            "latitude": poi.latitude if poi else 12.6165181,
+            "longitude": poi.longitude if poi else 80.1982844,
+            "arrival_radius_m": poi.arrival_radius_m if poi else 20.0,
             "has_benches": poi.has_benches if poi else False,
             "has_water": poi.has_water if poi else False,
             "personalized_welcome": welcome,
@@ -493,7 +533,7 @@ class SessionService:
             "shade_rating": stop.shade_rating,
             "target_relic_code": stop.target_relic_code,
             "badge_reward": stop.badge_reward,
-            "model_asset_url": poi.model_asset_url if poi else None,
+            "model_asset_url": None,
             "source": stop.source,
             "riddle": {
                 "question": stop.riddle_question,

@@ -26,6 +26,10 @@ class RiddleAnswerRequest(BaseModel):
     step_number: int
     answer: str
 
+class ManualCheckInRequest(BaseModel):
+    session_id: str
+    step_number: int
+
 @router.post("/start")
 async def start_or_resume_tour(req: StartSessionRequest, db: Session = Depends(get_db)):
     """
@@ -61,6 +65,19 @@ async def advance_to_next_stop(req: AdvanceStopRequest, db: Session = Depends(ge
     """
     try:
         result = await session_service.advance_stop(db, req.session_id)
+        return result
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/checkin")
+async def manual_checkin_stop(req: ManualCheckInRequest, db: Session = Depends(get_db)):
+    """
+    Manual 'I'm here' check-in for any stop (1..7) without requiring outdoor GPS lock.
+    """
+    try:
+        result = await session_service.checkin_stop(db, req.session_id, req.step_number)
         return result
     except ValueError as ve:
         raise HTTPException(status_code=404, detail=str(ve))
@@ -112,9 +129,10 @@ def get_full_blueprint(session_id: str, db: Session = Depends(get_db)):
             "poi_name": poi.name if poi else s.title,
             "x": poi.x if poi else 0.0,
             "y": poi.y if poi else 0.0,
-            "latitude": poi.latitude if poi else 12.6165,
-            "longitude": poi.longitude if poi else 80.1993,
-            "model_asset_url": poi.model_asset_url if poi else None,
+            "latitude": poi.latitude if poi else 12.6165181,
+            "longitude": poi.longitude if poi else 80.1982844,
+            "arrival_radius_m": poi.arrival_radius_m if poi else 20.0,
+            "model_asset_url": None,
             "target_relic_code": s.target_relic_code,
             "source": s.source,
             "riddle": {

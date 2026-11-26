@@ -22,7 +22,7 @@ def get_site_overview(db: Session = Depends(get_db)):
     nodes = db.query(POINode).all()
     edges = db.query(PathEdge).all()
     return {
-        "site_name": "Mahabalipuram Shore Temple Heritage Sanctuary",
+        "site_name": "Group of Monuments at Mahabalipuram (4.13 km 7-Stop Trail)",
         "total_poi_count": len(nodes),
         "total_paths_count": len(edges),
         "rest_stops_count": len([n for n in nodes if n.category == "shade_rest" or n.has_benches]),

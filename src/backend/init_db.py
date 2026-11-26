@@ -18,7 +18,7 @@ def ensure_schema(force_reset: bool = False):
     existing = inspector.get_table_names()
     needs_rebuild = force_reset
     for tbl, required_cols in (
-        ("poi_nodes", {"source", "coordinate_source"}),
+        ("poi_nodes", {"source", "coordinate_source", "arrival_radius_m", "arrival_radius_source"}),
         ("path_edges", {"distance_source"}),
         ("blueprint_stops", {"source"}),
         ("relic_artifacts", {"source"}),
@@ -53,7 +53,9 @@ def seed_database(force_reset: bool = False):
 
     # 7 Mahabalipuram stops with OpenStreetMap (ODbL) coordinates and Wiki/UNESCO historical sources.
     # Local (x, y) offsets are metric East/North displacements relative to Stop 1 (12.6165181 N, 80.1982844 E).
+    # Note: S4 & S6 starting radii adjusted from 30 m to 25 m so their 55.02 m separation stays strictly non-overlapping (25+25=50 m < 55.02 m).
     OSM_DIST_SRC = "OpenStreetMap footpath/street graph Dijkstra (ODbL)"
+    RAD_SRC_UNVERIFIED = "UNVERIFIED until field-tested"
     nodes_data = [
         POINode(
             id=1, slug="shore_temple_entry", name="Shore Temple Coastal Entry",
@@ -63,6 +65,7 @@ def seed_database(force_reset: bool = False):
             source=SRC_GROUP,
             x=0.0, y=0.0, z=0.0, latitude=12.6165181, longitude=80.1982844,
             coordinate_source="OpenStreetMap node/1138027422 (barrier=gate, ODbL)",
+            arrival_radius_m=20.0, arrival_radius_source=RAD_SRC_UNVERIFIED,
             has_benches=True, has_water=True, has_tree_shade=False, average_ambient_temp_c=32.5,
             model_asset_url=None
         ),
@@ -74,9 +77,9 @@ def seed_database(force_reset: bool = False):
             source=SRC_SHORE,
             x=115.8, y=-7.2, z=0.0, latitude=12.6164535, longitude=80.1993500,
             coordinate_source="OpenStreetMap way/370135158 (Mamallapuram Shore Temple, ODbL)",
+            arrival_radius_m=45.0, arrival_radius_source=RAD_SRC_UNVERIFIED,
             has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
-            # Illustrative placeholder only assigned here; never reused on other classes
-            model_asset_url="/app/assets/models/Grand_Solstice_Sun_Temple.glb"
+            model_asset_url=None
         ),
         POINode(
             id=3, slug="pancha_rathas", name="Pancha Rathas Monolithic Complex",
@@ -86,6 +89,7 @@ def seed_database(force_reset: bool = False):
             source=SRC_RATHAS,
             x=-932.4, y=-829.7, z=2.0, latitude=12.6090647, longitude=80.1897016,
             coordinate_source="OpenStreetMap way/103082949 (Pancha Rathas, ODbL)",
+            arrival_radius_m=75.0, arrival_radius_source=RAD_SRC_UNVERIFIED,
             has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=34.0,
             model_asset_url=None
         ),
@@ -97,6 +101,7 @@ def seed_database(force_reset: bool = False):
             source=SRC_ARJUNA,
             x=-607.0, y=154.8, z=2.0, latitude=12.6179087, longitude=80.1926969,
             coordinate_source="OpenStreetMap node/353978523 (Arjuna's Penance, ODbL)",
+            arrival_radius_m=25.0, arrival_radius_source=f"{RAD_SRC_UNVERIFIED} (adjusted from 30m for S4-S6 non-overlap)",
             has_benches=False, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
             model_asset_url=None
         ),
@@ -108,6 +113,7 @@ def seed_database(force_reset: bool = False):
             source=SRC_BUTTERBALL,
             x=-638.9, y=286.2, z=4.0, latitude=12.6190890, longitude=80.1924032,
             coordinate_source="OpenStreetMap way/753671961 (Krishna's Butterball, ODbL)",
+            arrival_radius_m=25.0, arrival_radius_source=RAD_SRC_UNVERIFIED,
             has_benches=True, has_water=False, has_tree_shade=False, average_ambient_temp_c=33.0,
             model_asset_url=None
         ),
@@ -119,6 +125,7 @@ def seed_database(force_reset: bool = False):
             source=SRC_VARAHA,
             x=-658.4, y=174.5, z=3.0, latitude=12.6180857, longitude=80.1922234,
             coordinate_source="OpenStreetMap node/353978532 (Varaha Mandapam / Cave, ODbL)",
+            arrival_radius_m=25.0, arrival_radius_source=f"{RAD_SRC_UNVERIFIED} (adjusted from 30m for S4-S6 non-overlap)",
             has_benches=True, has_water=True, has_tree_shade=True, average_ambient_temp_c=28.0,
             model_asset_url=None
         ),
@@ -130,6 +137,7 @@ def seed_database(force_reset: bool = False):
             source=SRC_MAHISHASURA,
             x=-732.8, y=-143.8, z=6.0, latitude=12.6152265, longitude=80.1915388,
             coordinate_source="OpenStreetMap node/353978541 (Mahishamadhini Cave, ODbL)",
+            arrival_radius_m=30.0, arrival_radius_source=RAD_SRC_UNVERIFIED,
             has_benches=True, has_water=True, has_tree_shade=True, average_ambient_temp_c=28.5,
             model_asset_url=None
         )
@@ -164,7 +172,7 @@ def seed_database(force_reset: bool = False):
             era="c. 725 AD (Narasimhavarman II)",
             script_welcome=(
                 "{name}, you are standing beside the Shore Temple, dating from the 8th century AD (c. 725 AD) during the reign of Pallava king Narasimhavarman II. "
-                "Point at Card 1 and tap SCAN RELIC to view the illustrative 3D model and sourced architecture notes."
+                "Point at Card 1 and tap SCAN RELIC to view its monument photograph and sourced architecture notes."
             ),
             script_details="Unlike rock-cut caves cut into living hill rock, the Shore Temple is a structural temple built from blocks of granite overlooking the Bay of Bengal.",
             next_step_guidance="Walk ~1831 m southwest via town streets to reach the Pancha Rathas monolithic rock-cut complex.",

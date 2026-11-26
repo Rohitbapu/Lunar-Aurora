@@ -22,9 +22,10 @@
       "is_relic": true,
       "card_code": "LUNA-CARD-01",
       "image_url": "/static/cards/01_shore_temple_vimana.jpg",
-      "model_url": "/app/assets/models/Grand_Solstice_Sun_Temple.glb",
-      "is_illustrative_model": true,
-      "model_label": "Illustrative model (procedural placeholder — not a 3D scan)",
+      "model_url": null,
+      "is_illustrative_model": false,
+      "model_label": null,
+      "todo_model": "Hidden in UI until team-made shore_temple_vimana.glb replaces placeholder; shows Wikimedia photo + facts panel.",
       "source": "https://en.wikipedia.org/wiki/Shore_Temple"
     },
     {

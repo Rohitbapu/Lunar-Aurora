@@ -22,6 +22,8 @@ class POINode(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     coordinate_source = Column(String(256), nullable=True)
+    arrival_radius_m = Column(Float, default=20.0)
+    arrival_radius_source = Column(String(256), nullable=True)
 
     has_benches = Column(Boolean, default=False)
     has_water = Column(Boolean, default=False)

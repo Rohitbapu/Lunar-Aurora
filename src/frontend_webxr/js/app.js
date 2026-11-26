@@ -26,12 +26,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  const params = new URLSearchParams(window.location.search);
+  const isDemoQuery = params.get('demo') === '1';
+
   if (window.locationTracker) {
     window.locationTracker.onLocationUpdated = (gpsData) => {
       const gpsLabel = document.getElementById('gps-coords-label');
       if (gpsLabel) {
         gpsLabel.textContent = window.locationTracker.isSimulated
-          ? `DEMO: ±${gpsData.accuracy}m`
+          ? `DEMO MODE (±${gpsData.accuracy}m)`
           : `GPS: ±${gpsData.accuracy}m`;
       }
       const mapModal = document.getElementById('modal-map');
@@ -44,12 +47,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       showNotification(`📍 Arrived near ${stop.name} (${dist}m)!`);
     };
 
-    window.locationTracker.checkPermissionStatus();
+    if (isDemoQuery) {
+      window.locationTracker.activateDemoMode((window.tourManager && window.tourManager.currentStep) || 1);
+    } else {
+      window.locationTracker.checkPermissionStatus();
+    }
   }
 
-  // Auto-open Jury Table Demo Mode if ?demo=1 in URL
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('demo') === '1') {
+  // Auto-open Demo Mode drawer if ?demo=1 in URL
+  if (isDemoQuery) {
     const drawer = document.getElementById('jury-demo-drawer');
     if (drawer) drawer.style.display = 'block';
   }
@@ -90,8 +96,12 @@ function setupUI() {
         gpsTapCount = 0;
         const drawer = document.getElementById('jury-demo-drawer');
         if (drawer) {
-          drawer.style.display = drawer.style.display === 'none' ? 'block' : 'none';
-          showNotification("🎛️ Jury Table Demo Mode toggled");
+          const opening = drawer.style.display === 'none';
+          drawer.style.display = opening ? 'block' : 'none';
+          if (opening && window.locationTracker) {
+            window.locationTracker.activateDemoMode((window.tourManager && window.tourManager.currentStep) || 1);
+          }
+          showNotification("🎛️ DEMO MODE toggled");
         }
         return;
       }
@@ -108,7 +118,7 @@ function setupUI() {
     });
   }
 
-  document.querySelectorAll('.demo-stop-btn').forEach(btn => {
+  document.querySelectorAll('.demo-stop-btn[data-step]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       const step = Number(btn.getAttribute('data-step'));
@@ -124,6 +134,7 @@ function setupUI() {
           };
         }
         window.tourManager.updateTopHUD();
+        window.tourManager.renderManualCheckinButtons();
         await renderInteractiveBlueprintMap();
       }
     });
@@ -248,6 +259,14 @@ function setupUI() {
     });
   }
 
+  const btnImHere = document.getElementById('btn-im-here-current');
+  if (btnImHere) {
+    btnImHere.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (window.tourManager) await window.tourManager.manualCheckIn(window.tourManager.currentStep);
+    });
+  }
+
   const restBtn = document.getElementById('btn-take-rest');
   if (restBtn) {
     restBtn.addEventListener('click', (e) => {
@@ -344,41 +363,29 @@ function setupUI() {
 
 function openCurrentReconstruction(title = null, modelUrl = null, latencyMs = null) {
   const stopData = window.tourManager && window.tourManager.currentStopData;
-  const resolvedUrl = modelUrl || (stopData && stopData.model_asset_url) || null;
   const resolvedTitle = title || (stopData && stopData.title) || 'Mahabalipuram Monument';
+  const relicCode = (stopData && stopData.target_relic_code) || 'shore_temple_vimana';
 
-  const infoPanel = document.getElementById('relic-info-panel');
   const eraPanel = document.getElementById('era-reconstruction-panel');
+  if (eraPanel) eraPanel.style.display = 'none';
+  if (window.arScene) window.arScene.hideRelicModel();
 
-  if (!resolvedUrl) {
-    if (eraPanel) eraPanel.style.display = 'none';
-    if (window.arScene) window.arScene.hideRelicModel();
-    showRelicPhotoInfoPanel({
-      name: resolvedTitle,
-      period: (stopData && stopData.era) || '7th-8th century CE',
-      style: (stopData && stopData.subtitle) || 'Mahabalipuram Heritage Monument',
-      story: (stopData && stopData.script_details) || 'No 3D mesh is available for this class yet; showing verified monument photo & documented notes.',
-      image_url: stopData && stopData.target_relic_code ? `/static/cards/0${stopData.target_relic_code === 'pancha_rathas' ? '2_pancha_rathas' : stopData.target_relic_code === 'arjunas_penance' ? '3_arjunas_penance' : stopData.target_relic_code === 'krishnas_butter_ball' ? '4_krishnas_butter_ball' : '5_mahishasuramardini_cave'}.jpg` : null,
-      source: stopData && stopData.source
-    }, latencyMs);
-    return;
-  }
+  const cardImageMap = {
+    shore_temple_vimana: '/static/cards/01_shore_temple_vimana.jpg',
+    pancha_rathas: '/static/cards/02_pancha_rathas.jpg',
+    arjunas_penance: '/static/cards/03_arjunas_penance.jpg',
+    krishnas_butter_ball: '/static/cards/04_krishnas_butter_ball.jpg',
+    mahishasuramardini_cave: '/static/cards/05_mahishasuramardini_cave.jpg'
+  };
 
-  if (infoPanel) infoPanel.style.display = 'none';
-  if (window.arScene) {
-    window.arScene.showRelicModel(resolvedUrl, resolvedTitle);
-    const slider = document.getElementById('era-slider-input');
-    if (slider) {
-      slider.value = 100;
-      window.arScene.setEraFactor(1.0);
-    }
-  }
-
-  if (eraPanel) {
-    document.getElementById('era-model-title').textContent = `Illustrative model: ${resolvedTitle}`;
-    document.getElementById('era-model-latency').textContent = latencyMs ? `(${latencyMs} ms)` : '';
-    eraPanel.style.display = 'block';
-  }
+  showRelicPhotoInfoPanel({
+    name: resolvedTitle,
+    period: (stopData && stopData.era) || '7th-8th century CE',
+    style: (stopData && stopData.subtitle) || 'Mahabalipuram Heritage Monument',
+    story: (stopData && stopData.script_details) || 'Verified Mahabalipuram monument photograph and sourced historical notes.',
+    image_url: cardImageMap[relicCode] || '/static/cards/01_shore_temple_vimana.jpg',
+    source: stopData && stopData.source
+  }, latencyMs);
 }
 
 function showRelicPhotoInfoPanel(art, latencyMs = null) {
@@ -650,18 +657,11 @@ function onArtifactIdentified(data) {
   showNotification(`Identified: ${art.name}`);
   displaySubtitlesAndSpeak(art.name, '', `${art.story} ${art.fun_fact || ''}`, data.audio_url, true);
 
-  // Only shore_temple_vimana shows the procedural Illustrative model; all other classes show verified photo + facts panel
-  const illustrativeUrl = art.code === 'shore_temple_vimana'
-    ? '/app/assets/models/Grand_Solstice_Sun_Temple.glb'
-    : null;
-  if (illustrativeUrl) {
-    openCurrentReconstruction(art.name, illustrativeUrl, data.inference_ms || null);
-  } else {
-    if (window.arScene) window.arScene.hideRelicModel();
-    const eraPanel = document.getElementById('era-reconstruction-panel');
-    if (eraPanel) eraPanel.style.display = 'none';
-    showRelicPhotoInfoPanel(art, data.inference_ms || null);
-  }
+  // Grand_Solstice_Sun_Temple.glb is hidden from UI; all 5 carving classes display verified photo + facts panel
+  if (window.arScene) window.arScene.hideRelicModel();
+  const eraPanel = document.getElementById('era-reconstruction-panel');
+  if (eraPanel) eraPanel.style.display = 'none';
+  showRelicPhotoInfoPanel(art, data.inference_ms || null);
 
   if (data.session_progress && window.tourManager) {
     window.tourManager.totalXp = data.session_progress.total_xp;

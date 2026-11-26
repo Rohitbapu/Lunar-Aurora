@@ -154,6 +154,11 @@
         <span>SCAN RELIC</span>
       </button>
 
+      <button class="secondary-action-btn" id="btn-im-here-current" title="Manual arrival check-in without GPS">
+        <i class="fa-solid fa-location-dot" style="color: #f4c430;"></i>
+        <span>I'M HERE</span>
+      </button>
+
       <button class="secondary-action-btn" id="btn-advance-stop">
         <i class="fa-solid fa-person-walking-arrow-right" style="color: #00e5ff;"></i>
         <span>NEXT</span>
@@ -173,7 +178,7 @@
     <!-- JURY TABLE INDOOR DEMO DRAWER (?demo=1 or triple-tap GPS pill) -->
     <div id="jury-demo-drawer" class="demo-drawer" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <strong style="color: #f4c430; font-size: 0.78rem;"><i class="fa-solid fa-sliders"></i> JURY TABLE DEMO MODE</strong>
+        <strong style="color: #f4c430; font-size: 0.78rem;"><i class="fa-solid fa-sliders"></i> DEMO MODE (Sim GPS & Solar Time)</strong>
         <div style="font-size: 0.7rem; color: #00e5ff; font-family: monospace;">
           <span id="demo-fps-readout">60 FPS</span> • Vision <span id="demo-vision-latency">-- ms</span>
         </div>
@@ -194,7 +199,7 @@
         <input type="date" id="demo-date-input" value="2027-01-11" style="background: rgba(255,255,255,0.08); border: 1px solid #00e5ff; color: #fff; border-radius: 6px; padding: 2px 4px; font-size: 0.68rem;">
         <span>IST: <strong id="demo-hour-label" style="color:#f4c430;">12:00</strong></span>
         <input type="range" id="demo-hour-slider" min="6" max="18" step="0.5" value="12" style="flex: 1; min-width: 80px; accent-color: #00e676;">
-        <button id="btn-demo-inspect-3d" style="background: rgba(0,229,255,0.2); border: 1px solid #00e5ff; color: #00e5ff; border-radius: 8px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer;">3D Preview</button>
+        <button id="btn-demo-inspect-3d" style="background: rgba(0,229,255,0.2); border: 1px solid #00e5ff; color: #00e5ff; border-radius: 8px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer;">Photo + Facts</button>
       </div>
     </div>
 
@@ -258,8 +263,12 @@
           <span><i class="fa-solid fa-circle" style="color: #00e676;"></i> Shaded Canopy</span>
         </div>
         <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-top: 8px; font-size: 0.78rem; color: #b0bec5; line-height: 1.4;">
-          <div id="next-stop-meta" style="color: #00e5ff; font-weight: 600; margin-bottom: 4px;">Next: ~255.0m (OSM walk) • ASSUMED COASTAL PATH</div>
+          <div id="next-stop-meta" style="color: #00e5ff; font-weight: 600; margin-bottom: 4px;">Next: ~255.0m (3.6 min) • One-way trail: 4.13 km (~59 min walk)</div>
           <div id="map-route-detail">Tap SHADE anytime to highlight the illustrative assumed-shade route (OpenStreetMap distances + assumed canopy weights, not measured sun).</div>
+        </div>
+        <div style="margin-top: 8px;">
+          <div style="font-size: 0.7rem; color: #8ba2bd; margin-bottom: 4px;">Manual Check-In ("I'm here" — bypasses unverified GPS geofence):</div>
+          <div id="manual-checkin-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 5px;"></div>
         </div>
       </div>
     </div>

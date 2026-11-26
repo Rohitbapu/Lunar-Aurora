@@ -115,7 +115,7 @@ async def pre_cache_all():
             )
             tasks.append(("qa", topic, lang, txt))
 
-    tasks.append(("farewell", "clip", "en", "Thank you for exploring Mahabalipuram with Lunar Aurora!"))
+    tasks.append(("farewell", "clip", "en", "Thank you for completing the 4.13 km one-way Mahabalipuram heritage trail with Lunar Aurora!"))
     tasks.append(("farewell", "clip", "ta", "லூனார் அரோராவுடன் மாமல்லபுரம் பயணத்தை முடித்ததற்கு நன்றி!"))
     tasks.append(("farewell", "clip", "hi", "लूनर ऑरोरा के साथ महाबलीपुरम यात्रा पूरी करने के लिए धन्यवाद!"))
 

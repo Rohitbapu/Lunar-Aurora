@@ -13,7 +13,8 @@
 1. **Zero-CDN Mobile WebXR & QR Ticketing (`src/frontend_webxr/` + `src/backend/`):**
    - Counter ticket portal (`/ticket`, `/qr`) generates URL-encoded QR launch links in **English (`EN`)**, **Tamil (`TA`)**, or **Hindi (`HI`)** with self-signed LAN TLS (`generate_ssl_certs.py --ip`) so mobile browsers can access camera and orientation sensors over `:8443`.
    - Runtime libraries (`three.min.js`, `GLTFLoader.js`, `tf.min.js`, `qrcode.min.js`, Font Awesome `6.5.1`) are vendored locally inside `src/frontend_webxr/vendor/`.
-   - 7 Mahabalipuram stops with OpenStreetMap (ODbL) coordinates (`node/1138027422`, `way/370135158`, `way/103082949`, `node/353978523`, `way/753671961`, `node/353978532`, `node/353978541`), real OpenStreetMap footpath/street walking distances (`255.0 m`–`1831.2 m`), Wikipedia/UNESCO sources, interactive `+45 XP` riddles, **`54`** pre-cached EN/TA/HI MP3s, `DeviceOrientationEvent` WebAudio panner alignment, watermarked snapshots, and `fpdf2` PDF Travel Journals.
+   - 7 Mahabalipuram stops with OpenStreetMap (ODbL) coordinates (`node/1138027422`, `way/370135158`, `way/103082949`, `node/353978523`, `way/753671961`, `node/353978532`, `node/353978541`), real OpenStreetMap one-way walking distances (`4128.3 m` / `4.13 km` total across 6 legs, `~59 min` walking at `70.0 m/min`), per-stop DB `arrival_radius_m` (`20, 45, 75, 25, 25, 25, 30` — all **UNVERIFIED** until field-tested), manual **`I'M HERE`** check-in buttons for all stops, Wikipedia/UNESCO sources, interactive `+45 XP` riddles, **`54`** pre-cached EN/TA/HI MP3s, `DeviceOrientationEvent` WebAudio panner alignment, watermarked snapshots, and `fpdf2` PDF Travel Journals.
+   - Verified Wikimedia photographs + sourced facts panels render for all 5 monument classes (`Grand_Solstice_Sun_Temple.glb` is hidden in WebXR UI and Demo Mode).
 2. **Real NOAA Solar Geometry + Assumed-Shade Dijkstra Graph (`routing_service.py` + `shadeMap.js`):**
    - Computes solar declination, equation of time, hour angle, solar elevation, and solar azimuth for `12.6165° N, 80.19° E` (IST) via the **NOAA General Solar Position Equations**, defaulting to **`2027-01-11`** and exposing `?date=` & `?hour=`.
    - Verified in `test_suite.py` (`09:00`: `30.75°` elev / `125.36°` azim; `12:00`: `55.22°` elev / `173.33°` azim; `16:00`: `25.23°` elev / `238.13°` azim — within `< 0.26°` of independent Meeus reference).
@@ -48,18 +49,18 @@ All shade weights below in `src/backend/init_db.py` and `src/backend/app/service
 ---
 
 ## Verified Backend Benchmarks (`benchmark_kpis.py` — 20 Iterations)
-Latest timestamped JSON: `src/backend/benchmark_results_20261126_145557.json`.
+Latest timestamped JSON: `src/backend/benchmark_results_20261126_154923.json`.
 
 | Operation | Measured Mean | Measured P95 | Status |
 | :--- | :---: | :---: | :--- |
-| Dijkstra shaded-route compute (DB graph) | `0.37 ms` | `0.55 ms` | MEASURED |
+| Dijkstra shaded-route compute (DB graph) | `0.37 ms` | `0.54 ms` | MEASURED |
 | NOAA solar calculation (`2027-01-11 12:00 IST`) | `0.01 ms` | `0.01 ms` | MEASURED |
-| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `4.02 ms` | `4.47 ms` | MEASURED |
+| Cached-audio hit (`GET /static/audio_cache/stop_1_en.mp3`) | `3.43 ms` | `4.01 ms` | MEASURED |
 | Online AI latency (`Groq + Edge-TTS`) | — | — | `NOT MEASURED - no API key` |
-| Vision metadata lookup (`POST /api/vision/identify`) | `7.26 ms` | `7.42 ms` | MEASURED |
-| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `6.09 ms` | `5.26 ms` | MEASURED |
-| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `14.03 ms` | `14.94 ms` | MEASURED |
-| Backend E2E & NOAA API test suite (`test_suite.py`) | `9/9` (`100.0%`) in `1845.43 ms` | — | MEASURED |
+| Vision metadata lookup (`POST /api/vision/identify`) | `6.66 ms` | `7.18 ms` | MEASURED |
+| Dual-route NOAA telemetry (`GET /api/site/telemetry`) | `6.49 ms` | `15.61 ms` | MEASURED |
+| PDF Travel Journal export (`POST /api/tour/{sid}/journal`) | `14.27 ms` | `15.43 ms` | MEASURED |
+| Backend E2E & NOAA API test suite (`test_suite.py`) | `9/9` (`100.0%`) in `2642.38 ms` | — | MEASURED |
 
 Pending hardware measurements (tagged **`MEASURE ON DEVICE`** in JSON): `mobile_fps`, `qr_to_ar_launch_ms`, `vision_on_device_ms`, and `unity_frame_time_ms`.
 
@@ -69,7 +70,8 @@ Pending hardware measurements (tagged **`MEASURE ON DEVICE`** in JSON): `mobile_
 See full details in **[docs/known_limitations.md](docs/known_limitations.md)**:
 - **Sony ELF-SR1 Plugin Absent (`No-SRD simulation mode`):** `SRDisplayUnityPlugin` is not installed (`SRDISPLAY_SDK_PRESENT` undefined); eye-tracked lenticular 3D is not active yet ([docs/sony_srd_integration_todo.md](docs/sony_srd_integration_todo.md)).
 - **Vision Classifier Untrained (`Vision model not installed`):** `data/cards/` captures have not been filmed yet, so `model.json` does not exist; `SCAN RELIC` displays `"Vision model not installed"` rather than guessing.
-- **Procedural 3D Placeholders:** Only `Grand_Solstice_Sun_Temple.glb` (`Illustrative model`) renders for `shore_temple_vimana`; cards 02–05 show their Wikimedia photograph + facts panel; Unity renders procedural shapes.
+- **Procedural 3D Placeholders (Hidden in WebXR UI):** `Grand_Solstice_Sun_Temple.glb` is hidden across WebXR UI and Demo Mode; all 5 carving classes display verified Wikimedia photographs and sourced facts panels until team-authored meshes are added. Unity renders 3 procedural placeholders labeled `"Illustrative model"`.
+- **Unverified Per-Stop Geofence Radii:** `arrival_radius_m` (`20, 45, 75, 25, 25, 25, 30`) are non-overlapping starting estimates (`UNVERIFIED until field-tested`); manual **`I'M HERE`** buttons exist for all stops.
 - **Assumed Route Shade Weights:** Distances come from OpenStreetMap (ODbL), but edge shade factors and penalties are illustrative placeholders, not measured irradiance/heat.
 - **Unmeasured Groq Benchmark & Hardware KPIs:** Groq AI latency is `NOT MEASURED - no API key`; phone FPS, QR launch time, mobile vision ms, and ELF-SR1 frame time remain `MEASURE ON DEVICE`.
 - **Self-Signed TLS Prompt:** Mobile HTTPS on `:8443` displays a browser warning for the local development certificate from `generate_ssl_certs.py`.
