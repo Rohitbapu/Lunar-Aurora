@@ -77,7 +77,7 @@ def ticket_counter_portal():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Lunar Aurora - Ticketing Counter</title>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <link rel="stylesheet" href="/app/vendor/fontawesome/css/all.min.css">
         <style>
             body {
                 background: #070b12; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -115,7 +115,7 @@ def ticket_counter_portal():
                 color: #00e5ff; font-size: 0.82rem; word-break: break-all; text-decoration: none; display: block; margin-top: 10px;
             }
         </style>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+        <script src="/app/vendor/qrcode/qrcode.min.js"></script>
     </head>
     <body>
         <div class="panel">

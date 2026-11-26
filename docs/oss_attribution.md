@@ -1,16 +1,33 @@
 # Open-Source Software (OSS) & Asset Attribution Disclosure
 
-Team **Lunar Aurora** (XR Innovation Challenge 2026) maintains strict transparency between third-party open-source dependencies, partner SDKs, and original source code/3D assets authored by our team.
+Team **Lunar Aurora** (XR Innovation Challenge 2026) documents every third-party library, vendored frontend asset, backend dependency, and authored artifact below.
 
-| Component / Library | License | Role in System | What Was Reused vs. Original Team Lunar Aurora Engineering |
+## 1. Vendored Frontend Libraries (`src/frontend_webxr/vendor/`)
+
+| Library | Version | Source URL | License | Modifications |
+| :--- | :---: | :--- | :--- | :--- |
+| **Three.js (`three.min.js`)** | `r128` (`0.128.0`) | https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js | MIT License | unmodified |
+| **Three.js GLTFLoader (`GLTFLoader.js`)** | `r128` (`0.128.0`) | https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js | MIT License | unmodified |
+| **TensorFlow.js (`tf.min.js`)** | `4.17.0` | https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js | Apache-2.0 License | unmodified |
+| **Font Awesome Free (CSS + 8 Webfont files)** | `6.5.1` | https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css | Icons: CC BY 4.0 / Fonts: SIL OFL 1.1 / Code: MIT | unmodified |
+| **QRCode.js (`qrcode.min.js`)** | `1.0.0` | https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js | MIT License | unmodified |
+
+## 2. Backend & Infrastructure Dependencies (`src/backend/requirements.txt`)
+
+| Library | Source | License | Role & Modifications |
 | :--- | :--- | :--- | :--- |
-| **FastAPI & Uvicorn** | MIT / BSD-3 | REST & HTTPS Application Server | Reused HTTP framework; authored custom dual HTTP/HTTPS launcher (`start_servers.py`), Mahabalipuram schema, 2.5s timeout middleware, PDF Travel Journal API (`/api/tour/{id}/journal`), and `/api/site/telemetry`. |
-| **NetworkX & SQLAlchemy** | BSD-3 / MIT | Spatial Graph Routing & Persistence | Reused Dijkstra shortest-path primitive and ORM; authored original NOAA solar declination/elevation-azimuth calculator and thermal shade penalty weighting `$w_{\text{shaded}}(e)$` in `routing_service.py`. |
-| **Three.js (r128) + GLTFLoader** | MIT | WebXR 3D Viewport & `.glb` Loader | Reused WebGL renderer and glTF parser; authored camera-first transparent AR overlay, Era Slider material cross-fader (`arScene.js`), toggleable corner 3D Guide avatar, and `DeviceOrientationEvent` quaternion coupling. |
-| **TensorFlow.js & COCO-SSD** | Apache 2.0 | On-Device Object Recognition | Reused runtime inference engine; authored 6-class Mahabalipuram carving signature configuration (`carving_signatures.json`), `>= 0.82` confidence gate, and optional custom `model.json` hot-loader (`visionEngine.js`). |
-| **Web Audio API (HRTF `PannerNode`)** | W3C Web Standard | Binaural 3D Spatial Audio | Reused browser audio graph primitives; authored listener head-orientation updater coupled to live mobile gyroscope quaternions and YouTube-style audio progress subtitle synchronizer (`spatialAudio.js`). |
-| **Edge-TTS (`en-IN`, `ta-IN`, `hi-IN`)** | LGPL-3.0 | Multilingual Neural Voice Synthesis | Reused Python Edge-TTS synthesis client; authored 44-clip pre-cache generator (`pre_cache_audio.py`) and explicit `2.5s` offline failsafe resolver (`tts_service.py`). |
-| **Groq Llama-3.3-70B API** | Proprietary API / MIT SDK | Conversational Historical AI | Reused Groq inference SDK; authored coastal Pallava prompt engineering, `2.5s` async timeout guard, and deterministic EN/TA/HI offline Q&A bank (`groq_service.py`). |
-| **fpdf2 & Pillow** | LGPL-3.0 / HPND | Travel Journal PDF Export | Reused PDF layout primitives; authored watermarked photo embed pipeline and multi-section Heritage Travel Journal exporter (`session_service.py`). |
-| **Unity 6 Engine** | Unity Personal / Free | Sony ELF-SR1 Kiosk Application | Reused Unity Player runtime; authored `SRDisplayViewerController.cs` (VSync=0 enforcement, Dual-Display isolation, No-SRD Simulation Mode), `HolographicMonumentPreview.cs` (shade heatmap + live crowd pins), and `KioskNetworkBridge.cs` (2s telemetry polling). |
-| **Procedural `.glb` 3D Heritage Assets** | Original (MIT) | Monument Reconstructions | 100% original glTF 2.0 binary meshes generated and scaled for both the Sony ELF-SR1 volumetric box and mobile WebXR Era Slider. |
+| **FastAPI & Starlette** | https://github.com/fastapi/fastapi | MIT License | Reused REST server framework; unmodified upstream package. |
+| **Uvicorn** | https://github.com/encode/uvicorn | BSD-3-Clause | ASGI HTTP/HTTPS server; unmodified upstream package. |
+| **SQLAlchemy** | https://github.com/sqlalchemy/sqlalchemy | MIT License | ORM & SQLite schema management; unmodified upstream package. |
+| **NetworkX** | https://github.com/networkx/networkx | BSD-3-Clause | Dijkstra graph routing engine; unmodified upstream package. |
+| **Groq Python SDK (`groq`)** | https://github.com/groq/groq-python | Apache-2.0 License | LLM API client with custom `2.5s` async timeout wrapper in `groq_service.py`. |
+| **Edge-TTS (`edge-tts`)** | https://github.com/rany2/edge-tts | LGPL-3.0 | Neural voice synthesis with pre-cached offline MP3 fallback in `tts_service.py`. |
+| **fpdf2 & Pillow** | https://github.com/py-pdf/fpdf2 / https://python-pillow.github.io/ | LGPL-3.0 / HPND | Used to compile downloadable Heritage Travel Journal PDFs in `session_service.py`. |
+| **cryptography** | https://github.com/pyca/cryptography | Apache-2.0 / BSD-3-Clause | Generates local `localhost` + LAN IP self-signed TLS certs in `generate_ssl_certs.py`. |
+| **HTTPX / Pydantic / Pydantic-Settings / aiofiles / psycopg2-binary** | PyPI upstream releases | BSD / MIT / LGPL | Standard HTTP client (`TestClient`), schema validation, async file I/O, and optional Postgres driver; unmodified. |
+
+## 3. Code & Assets Authored by Team Lunar Aurora
+- Backend services, API routers, Mahabalipuram 7-stop schema, and offline audio cache (`src/backend/`).
+- Camera-first AR scene, ShadeMap SVG renderer, spatial audio orientation bridge, and Jury Demo simulator (`src/frontend_webxr/js/`).
+- Unity 6 Kiosk scripts (`src/kiosk_unity/Assets/`) and printable matte carving cards (`docs/carving_cards/`).
+- Three procedural `.glb` meshes in `src/kiosk_unity/SonyPlayer_3DAssets/` and `src/frontend_webxr/assets/models/` (generated by `src/kiosk_unity/generate_glb_exhibits.py`; flagged for replacement or explicit open-license heritage scanning in Task 3 audit).

@@ -94,7 +94,7 @@ def get_qr_page():
                 color: #8ba2bd; word-break: break-all; margin-top: 10px;
             }}
         </style>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+        <script src="/app/vendor/qrcode/qrcode.min.js"></script>
     </head>
     <body>
         <div class="card">
