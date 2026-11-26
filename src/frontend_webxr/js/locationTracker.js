@@ -14,7 +14,8 @@ class LocationTracker {
     this.isTracking = false;
     this.hasGpsFix = false;
     this.isSimulated = false;
-    this.simulatedHour = null;
+    this.simulatedHour = 12.0;
+    this.simulatedDate = '2027-01-11';
     this.permissionState = 'unknown';
     this.lastArrivedStep = null;
 

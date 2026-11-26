@@ -190,9 +190,10 @@
         <button class="demo-stop-btn" data-step="6">S6 Varaha</button>
         <button class="demo-stop-btn" data-step="7">S7 Durga</button>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: #b0bec5;">
-        <span>Sun: <strong id="demo-hour-label" style="color:#f4c430;">13:00</strong></span>
-        <input type="range" id="demo-hour-slider" min="9" max="16" step="0.5" value="13" style="flex: 1; accent-color: #00e676;">
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: #b0bec5; flex-wrap: wrap;">
+        <input type="date" id="demo-date-input" value="2027-01-11" style="background: rgba(255,255,255,0.08); border: 1px solid #00e5ff; color: #fff; border-radius: 6px; padding: 2px 4px; font-size: 0.68rem;">
+        <span>IST: <strong id="demo-hour-label" style="color:#f4c430;">12:00</strong></span>
+        <input type="range" id="demo-hour-slider" min="6" max="18" step="0.5" value="12" style="flex: 1; min-width: 80px; accent-color: #00e676;">
         <button id="btn-demo-inspect-3d" style="background: rgba(0,229,255,0.2); border: 1px solid #00e5ff; color: #00e5ff; border-radius: 8px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer;">3D Preview</button>
       </div>
     </div>
@@ -241,6 +242,12 @@
         <button class="btn-icon-circle" id="btn-close-map"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="modal-body">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: #b0bec5; margin-bottom: 8px; flex-wrap: wrap;">
+          <span>NOAA Date:</span>
+          <input type="date" id="map-date-input" value="2027-01-11" style="background: rgba(255,255,255,0.08); border: 1px solid #00e5ff; color: #fff; border-radius: 6px; padding: 2px 6px; font-size: 0.7rem;">
+          <span>IST <strong id="map-hour-label" style="color:#f4c430;">12:00</strong></span>
+          <input type="range" id="map-hour-slider" min="6" max="18" step="0.5" value="12" style="flex: 1; min-width: 90px; accent-color: #00e676;">
+        </div>
         <div id="shade-savings-badge" style="background: rgba(0, 230, 118, 0.14); border: 1px solid #00e676; border-radius: 10px; padding: 6px 10px; font-size: 0.74rem; color: #e0f7fa; text-align: center; margin-bottom: 8px;">
           Computing Solar Sun vs. Shaded Route...
         </div>

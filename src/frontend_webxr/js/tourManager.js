@@ -435,9 +435,10 @@ async function renderInteractiveBlueprintMap(targetOverrideId = null) {
   const simHour = window.locationTracker && window.locationTracker.simulatedHour !== null
     ? `&hour=${window.locationTracker.simulatedHour}`
     : '';
+  const simDate = (window.locationTracker && window.locationTracker.simulatedDate) || '2027-01-11';
 
   try {
-    const res = await fetch(`/api/site/telemetry?start_id=${startId}&target_id=${targetId}${simHour}`);
+    const res = await fetch(`/api/site/telemetry?start_id=${startId}&target_id=${targetId}&date=${encodeURIComponent(simDate)}${simHour}`);
     if (res.ok) {
       const tel = await res.json();
       tm.shadeMapRenderer.setTelemetry(tel);

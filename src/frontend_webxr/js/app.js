@@ -131,18 +131,46 @@ function setupUI() {
 
   const demoHourSlider = document.getElementById('demo-hour-slider');
   const demoHourLabel = document.getElementById('demo-hour-label');
+  const demoDateInput = document.getElementById('demo-date-input');
+  const mapHourSlider = document.getElementById('map-hour-slider');
+  const mapHourLabel = document.getElementById('map-hour-label');
+  const mapDateInput = document.getElementById('map-date-input');
+
+  async function syncSolarTimeControls(hr, dateVal) {
+    const clampedHr = Math.max(0, Math.min(24, parseFloat(hr)));
+    const hh = Math.floor(clampedHr);
+    const mm = clampedHr % 1 >= 0.5 ? '30' : '00';
+    const timeLabel = `${String(hh).padStart(2, '0')}:${mm}`;
+    const effDate = dateVal || (window.locationTracker && window.locationTracker.simulatedDate) || '2027-01-11';
+
+    if (demoHourLabel) demoHourLabel.textContent = timeLabel;
+    if (mapHourLabel) mapHourLabel.textContent = timeLabel;
+    if (demoHourSlider) demoHourSlider.value = String(clampedHr);
+    if (mapHourSlider) mapHourSlider.value = String(clampedHr);
+    if (demoDateInput && demoDateInput.value !== effDate) demoDateInput.value = effDate;
+    if (mapDateInput && mapDateInput.value !== effDate) mapDateInput.value = effDate;
+
+    if (window.locationTracker) {
+      window.locationTracker.simulatedHour = clampedHr;
+      window.locationTracker.simulatedDate = effDate;
+    }
+    const mapModal = document.getElementById('modal-map');
+    if (mapModal && mapModal.classList.contains('open')) {
+      await renderInteractiveBlueprintMap();
+    }
+  }
+
   if (demoHourSlider) {
-    demoHourSlider.addEventListener('input', async () => {
-      const hr = parseFloat(demoHourSlider.value);
-      const hh = Math.floor(hr);
-      const mm = hr % 1 >= 0.5 ? '30' : '00';
-      if (demoHourLabel) demoHourLabel.textContent = `${String(hh).padStart(2, '0')}:${mm}`;
-      if (window.locationTracker) window.locationTracker.simulatedHour = hr;
-      const mapModal = document.getElementById('modal-map');
-      if (mapModal && mapModal.classList.contains('open')) {
-        await renderInteractiveBlueprintMap();
-      }
-    });
+    demoHourSlider.addEventListener('input', () => syncSolarTimeControls(demoHourSlider.value, demoDateInput ? demoDateInput.value : null));
+  }
+  if (mapHourSlider) {
+    mapHourSlider.addEventListener('input', () => syncSolarTimeControls(mapHourSlider.value, mapDateInput ? mapDateInput.value : null));
+  }
+  if (demoDateInput) {
+    demoDateInput.addEventListener('change', () => syncSolarTimeControls(demoHourSlider ? demoHourSlider.value : 12, demoDateInput.value));
+  }
+  if (mapDateInput) {
+    mapDateInput.addEventListener('change', () => syncSolarTimeControls(mapHourSlider ? mapHourSlider.value : 12, mapDateInput.value));
   }
 
   const demo3dBtn = document.getElementById('btn-demo-inspect-3d');

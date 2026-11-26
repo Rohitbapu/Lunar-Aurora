@@ -34,17 +34,22 @@ def get_site_overview(db: Session = Depends(get_db)):
 def get_site_telemetry(
     start_id: int = Query(1, description="Origin POI node ID"),
     target_id: int = Query(6, description="Destination POI node ID"),
-    hour: Optional[float] = Query(None, ge=0.0, le=24.0, description="Hour of day (0-24) for solar simulation"),
+    hour: Optional[float] = Query(None, ge=0.0, le=24.0, description="Hour of day in IST (0-24) for NOAA solar calculation"),
+    date: str = Query("2027-01-11", description="Date in YYYY-MM-DD (defaults to Finale date 2027-01-11)"),
     db: Session = Depends(get_db)
 ):
     """
-    Dual-route solar telemetry + live crowd occupancy endpoint consumed by both
-    WebXR ShadeMap.js and the Sony ELF-SR1 Unity 6 Kiosk (polled every 2 seconds).
+    Dual-route NOAA solar telemetry + live crowd occupancy endpoint consumed by both
+    WebXR ShadeMap.js and the Unity 6 Kiosk (No-SRD simulation mode / Operator HUD).
     """
     try:
-        return routing_service.get_dual_telemetry(db, start_id=start_id, target_id=target_id, hour=hour)
+        return routing_service.get_dual_telemetry(
+            db, start_id=start_id, target_id=target_id, hour=hour, date_str=date
+        )
     except ValueError as ve:
-        raise HTTPException(status_code=404, detail=str(ve))
+        detail = str(ve)
+        status_code = 400 if "Invalid date" in detail else 404
+        raise HTTPException(status_code=status_code, detail=detail)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

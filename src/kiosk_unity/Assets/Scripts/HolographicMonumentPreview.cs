@@ -26,12 +26,14 @@ namespace LunarAurora.Kiosk
         public bool isExploded = false;
         public float animationSpeed = 3.5f;
 
-        [Header("Directional Light & Telemetry Simulation")]
+        [Header("Directional Light & NOAA Telemetry")]
         public Light directionalSunLight;
+        public string simulatedDate = "2027-01-11";
         [Range(6.0f, 18.0f)]
-        public float simulatedHour = 13.0f;
+        public float simulatedHour = 12.0f;
         public bool animateSunCycle = true;
         public KioskNetworkBridge telemetryBridge;
+        private float lastBridgePushHour = -1.0f;
 
         private Transform exhibitContainer;
         private GameObject[] exhibitRoots = new GameObject[3];
@@ -95,6 +97,11 @@ namespace LunarAurora.Kiosk
                 {
                     simulatedHour += Time.deltaTime * 0.45f;
                     if (simulatedHour > 18.0f) simulatedHour = 6.0f;
+                }
+                if (telemetryBridge != null && Mathf.Abs(simulatedHour - lastBridgePushHour) >= 0.25f)
+                {
+                    lastBridgePushHour = simulatedHour;
+                    telemetryBridge.SetSolarQuery(simulatedDate, simulatedHour, true);
                 }
                 UpdateSunLightAngle();
             }
@@ -167,22 +174,48 @@ namespace LunarAurora.Kiosk
 
         void UpdateSunLightAngle()
         {
-            float progress = (simulatedHour - 6.0f) / 12.0f;
-            float elev = Mathf.Sin(progress * Mathf.PI) * 75.0f + 10.0f;
-            float azim = -80.0f + progress * 160.0f;
-            directionalSunLight.transform.rotation = Quaternion.Euler(elev, azim, 0f);
+            if (telemetryBridge != null && telemetryBridge.backendConnected)
+            {
+                float elevDeg = telemetryBridge.currentSolarElevation;
+                float azimDeg = telemetryBridge.currentSolarAzimuth;
+                float elRad = elevDeg * Mathf.Deg2Rad;
+                float azRad = azimDeg * Mathf.Deg2Rad;
+
+                // World coords: +X East, +Y Up, +Z North (azimuth clockwise from North)
+                Vector3 sunDir = new Vector3(
+                    Mathf.Cos(elRad) * Mathf.Sin(azRad),
+                    Mathf.Sin(elRad),
+                    Mathf.Cos(elRad) * Mathf.Cos(azRad)
+                );
+                if (elevDeg <= 0.1f)
+                {
+                    directionalSunLight.intensity = 0.08f;
+                }
+                else
+                {
+                    directionalSunLight.intensity = Mathf.Lerp(0.45f, 1.55f, Mathf.Clamp01(elevDeg / 65.0f));
+                    directionalSunLight.transform.rotation = Quaternion.LookRotation(-sunDir.normalized, Vector3.up);
+                }
+                return;
+            }
+
+            // Offline standby: neutral fixed key lighting until backend NOAA endpoint is reachable
+            directionalSunLight.intensity = 1.15f;
+            directionalSunLight.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
         }
 
         void UpdateTelemetryVisuals()
         {
-            float noonIntensity = Mathf.Clamp01(Mathf.Sin(((simulatedHour - 6.0f) / 12.0f) * Mathf.PI));
+            float heatNorm = (telemetryBridge != null && telemetryBridge.backendConnected)
+                ? Mathf.Clamp01(telemetryBridge.currentSolarElevation / 65.0f)
+                : 0.35f;
             for (int i = 0; i < shadeHeatmapTiles.Count; i++)
             {
                 if (shadeHeatmapTiles[i] == null) continue;
                 bool isCoolZone = (i % 2 == 0);
                 shadeHeatmapTiles[i].material.color = isCoolZone
-                    ? Color.Lerp(new Color(0f, 0.6f, 0.35f, 0.55f), new Color(0f, 0.95f, 0.45f, 0.85f), noonIntensity)
-                    : Color.Lerp(new Color(0.95f, 0.65f, 0.1f, 0.45f), new Color(1f, 0.25f, 0.15f, 0.78f), noonIntensity);
+                    ? Color.Lerp(new Color(0f, 0.6f, 0.35f, 0.55f), new Color(0f, 0.95f, 0.45f, 0.85f), heatNorm)
+                    : Color.Lerp(new Color(0.95f, 0.65f, 0.1f, 0.45f), new Color(1f, 0.25f, 0.15f, 0.78f), heatNorm);
             }
 
             if (telemetryBridge != null)

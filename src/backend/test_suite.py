@@ -82,17 +82,44 @@ def run_tests():
     assert all(s["source"] and s["source"].startswith("https://") for s in r_bp.json()["stops"])
     print("   -> OK (all 7 stops have valid source URLs)")
 
-    print("6. Testing Dual Telemetry (Shortest Sun vs Shaded Route) & Cave Shade Rest Routing:")
-    r_tel = client.get("/api/site/telemetry?start_id=1&target_id=7&hour=13.0")
+    print("6. Testing Dual Telemetry (Shortest Sun vs NOAA-Shaded Route) & Cave Shade Rest Routing:")
+    r_tel = client.get("/api/site/telemetry?start_id=1&target_id=7&hour=12.0&date=2027-01-11")
     assert r_tel.status_code == 200
     tel = r_tel.json()
     assert tel["found"] is True
+    assert tel["date"] == "2027-01-11"
+    assert tel["solar_model"] == "NOAA General Solar Position Equations"
+    assert "model estimate" in tel["heat_estimate_note"]
     assert tel["heat_exposure_saved_pct"] > 0.0
-    r_rest = client.get("/api/routing/take-a-rest?current_node_id=1&hour=12.0")
+    r_rest = client.get("/api/routing/take-a-rest?current_node_id=1&hour=12.0&date=2027-01-11")
     assert r_rest.status_code == 200 and r_rest.json()["found"] is True
     rest_dest = r_rest.json()["path_nodes"][-1]["name"]
     assert "Varaha" in rest_dest or "Mahishasuramardini" in rest_dest
-    print(f"   -> OK (Heat Saved: {tel['heat_exposure_saved_pct']}%, Rest: {rest_dest})")
+    print(f"   -> OK (2027-01-11 12:00 IST | Elev: {tel['solar_elevation_deg']} deg | Heat Saved [model estimate]: {tel['heat_exposure_saved_pct']}%, Rest: {rest_dest})")
+
+    print("6b. Verifying NOAA Solar Position Equations vs Meeus Reference (2027-01-11 @ 09:00, 12:00, 16:00 IST):")
+    # Hand-verified Meeus Julian Day reference values for Mahabalipuram (12.6165 N, 80.19 E, IST UTC+5:30) on 2027-01-11:
+    noaa_ref = [
+        (9.0, 30.68, 125.18),
+        (12.0, 55.31, 173.07),
+        (16.0, 25.40, 238.16),
+    ]
+    print("   Hour(IST) | NOAA Elev | Ref Elev | Diff  | NOAA Azim | Ref Azim | Diff  | Decl   | EoT(m) | HA")
+    for h, ref_el, ref_az in noaa_ref:
+        r_sol = client.get(f"/api/routing/solar-status?date=2027-01-11&hour={h}")
+        assert r_sol.status_code == 200
+        s = r_sol.json()
+        el, az = s["solar_elevation_deg"], s["solar_azimuth_deg"]
+        el_diff = abs(el - ref_el)
+        az_diff = abs(az - ref_az)
+        assert el_diff < 0.5 and az_diff < 0.5, f"Solar mismatch at {h}: {s}"
+        print(
+            f"   {h:9.1f} | {el:9.2f} | {ref_el:8.2f} | {el_diff:5.2f} | "
+            f"{az:9.2f} | {ref_az:8.2f} | {az_diff:5.2f} | "
+            f"{s['declination_deg']:6.2f} | {s['equation_of_time_min']:6.2f} | {s['hour_angle_deg']:6.2f}"
+        )
+    # Invalid date check
+    assert client.get("/api/routing/solar-status?date=invalid-date").status_code == 400
 
     print("7. Testing All 5 Mahabalipuram Card Classes, Scavenger Unlock & No-Guessing Check:")
     for card_cls in NEW_CARD_CLASSES:

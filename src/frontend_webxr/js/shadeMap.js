@@ -26,12 +26,14 @@ class ShadeMapRenderer {
         if (this.badge && telemetry) {
             const saved = telemetry.heat_exposure_saved_pct ?? 0;
             const sunDeg = telemetry.solar_elevation_deg ?? 0;
+            const azDeg = telemetry.solar_azimuth_deg ?? 0;
+            const dateStr = telemetry.date || "2027-01-11";
             const deltaM = telemetry.route_distance_delta_meters ?? 0;
             this.badge.innerHTML =
                 `<span style="color:#ff5252;">● Sun</span> vs ` +
                 `<span style="color:#00e676;">● Shaded</span> ` +
                 `| <strong>Est. Heat Saved (model estimate): ${saved}%</strong> ` +
-                `(${deltaM >= 0 ? "+" : ""}${deltaM}m, Sun ${sunDeg}°)`;
+                `(${deltaM >= 0 ? "+" : ""}${deltaM}m, NOAA ${dateStr} Elev ${sunDeg}° Az ${azDeg}°)`;
         }
         this.render();
     }
