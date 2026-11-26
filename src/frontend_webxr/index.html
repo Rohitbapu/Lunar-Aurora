@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Lunar Aurora - Mahabalipuram WebXR Tour</title>
+  <meta name="theme-color" content="#070b12">
+
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Three.js (r128) & GLTFLoader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <!-- TensorFlow.js & COCO-SSD for On-Device Carving Recognition -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+</head>
+<body>
+  <div id="app-container">
+
+    <!-- AR Viewport & Camera Layers (Unobstructed Fullscreen During Walk) -->
+    <div id="ar-viewport-container">
+      <video id="camera-video" playsinline autoplay muted></video>
+      <canvas id="vision-overlay-canvas"></canvas>
+    </div>
+
+    <!-- Security & Camera Permission Helper Banner -->
+    <div id="camera-security-banner" style="display: none; position: absolute; top: 62px; left: 14px; right: 14px; z-index: 99; background: rgba(18, 26, 42, 0.96); border: 2px solid #00e5ff; border-radius: 16px; padding: 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.8); text-align: center;">
+      <div style="font-weight: 700; color: #f4c430; font-size: 0.9rem; margin-bottom: 6px;">
+        <i class="fa-solid fa-camera"></i> Live Camera Access
+      </div>
+      <p style="font-size: 0.78rem; color: #b0bec5; line-height: 1.4; margin-bottom: 10px;">
+        Android Chrome requires HTTPS for camera access. Tap below to launch on secure HTTPS (Port 8443):
+      </p>
+      <a id="banner-https-link" href="#" style="display: block; background: #00e5ff; color: #000; font-weight: 700; padding: 10px 14px; border-radius: 20px; text-decoration: none; font-size: 0.82rem; margin-bottom: 8px;">
+        Switch to Secure HTTPS (Port 8443)
+      </a>
+      <button id="btn-enable-camera" style="background: rgba(255,255,255,0.1); border: 1px solid #00e5ff; color: #fff; padding: 6px 12px; border-radius: 12px; font-size: 0.75rem;">
+        Retry Camera
+      </button>
+    </div>
+
+    <!-- CLEAN MINIMALIST TOP HUD -->
+    <div class="clean-top-hud">
+      <div class="hud-pill" id="tour-stop-pill" style="max-width: 44%; overflow: hidden;">
+        <i class="fa-solid fa-landmark-dome" style="color: #f4c430; flex-shrink: 0;"></i>
+        <span id="tour-stop-label" style="font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Stop 1/7: Shore Temple</span>
+      </div>
+
+      <!-- Real-time GPS Pill (Tap once for fix; triple-tap for Jury Demo Mode) -->
+      <div class="hud-pill" id="gps-status-pill" title="Tap for GPS • Triple-tap for Jury Demo Mode" style="border-color: rgba(0, 230, 118, 0.6); font-size: 0.72rem; cursor: pointer; padding: 6px 10px;">
+        <i class="fa-solid fa-location-crosshairs" style="color: #00e676;"></i>
+        <span id="gps-coords-label">GPS: Enable</span>
+      </div>
+
+      <div style="display: flex; gap: 6px;">
+        <button class="btn-icon-circle" id="btn-open-scavenger" title="Quests & Badges" style="border-color: #f4c430; color: #f4c430;">
+          <i class="fa-solid fa-trophy"></i>
+        </button>
+        <button class="btn-icon-circle" id="btn-open-map-top" title="Dual Solar & Shade Map" style="border-color: #00e5ff; color: #00e5ff;">
+          <i class="fa-solid fa-map-location-dot"></i>
+        </button>
+        <button class="btn-icon-circle" id="btn-end-tour-top" title="Finish & Travel Journal" style="border-color: #ff5252; color: #ff5252;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- TUCKED FLOATING QUICK PILLS (Right Edge - Leaves Center Camera 100% Free) -->
+    <div class="side-quick-pills">
+      <button class="side-pill-btn" id="btn-toggle-3d-guide" title="Toggle 3D Guide Avatar">
+        <i class="fa-solid fa-cube"></i>
+        <span>3D GUIDE</span>
+      </button>
+      <button class="side-pill-btn" id="btn-open-riddle" title="Stop Historical Riddle">
+        <i class="fa-solid fa-scroll"></i>
+        <span>RIDDLE</span>
+      </button>
+      <button class="side-pill-btn" id="btn-snap-memory" title="Snap AR Memory Photo">
+        <i class="fa-solid fa-camera-retro"></i>
+        <span>SNAP</span>
+      </button>
+    </div>
+
+    <!-- Subtle Center Focus Reticle -->
+    <div class="point-know-crosshair" id="hud-crosshair"></div>
+
+    <!-- ON-DEMAND 3D ERA RECONSTRUCTION SLIDER (Hidden while walking; opens on Scan) -->
+    <div id="era-reconstruction-panel" class="era-panel" style="display: none;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #00e5ff;">
+          <i class="fa-solid fa-cubes"></i> <span id="era-model-title">700 CE Pallava Reconstruction</span>
+          <span id="era-model-latency" style="color: #00e676; font-size: 0.7rem; margin-left: 6px;"></span>
+        </div>
+        <button id="btn-close-era-panel" class="era-close-btn" title="Dismiss 3D Model">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 0.72rem; color: #cfd8dc;">
+        <span>Present Ruin</span>
+        <input type="range" id="era-slider-input" min="0" max="100" value="100" style="flex: 1; accent-color: #f4c430;">
+        <span style="color: #f4c430; font-weight: 700;">700 CE Zenith</span>
+      </div>
+    </div>
+
+    <!-- YOUTUBE-STYLE CLEAN LIVE SUBTITLES -->
+    <div id="yt-subtitle-container" class="yt-subtitle-container" style="pointer-events: auto;">
+      <div id="yt-subtitle-box" class="yt-subtitle-box" style="display: flex; align-items: center; gap: 8px;">
+        <div style="flex: 1;">
+          <span class="speaker-tag" id="yt-speaker">Luna:</span>
+          <span id="yt-subtitle-text">Tap screen to start guided audio tour.</span>
+        </div>
+        <button id="btn-mute-speech" title="Stop Voice" style="background: rgba(255,255,255,0.14); border: none; color: #fff; width: 24px; height: 24px; border-radius: 50%; font-size: 0.7rem; cursor: pointer; flex-shrink: 0;">
+          <i class="fa-solid fa-volume-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- CLEAN MINIMALIST BOTTOM ACTION DOCK -->
+    <div class="clean-bottom-dock">
+      <button class="primary-action-btn" id="btn-scan-relic">
+        <i class="fa-solid fa-camera"></i>
+        <span>SCAN RELIC</span>
+      </button>
+
+      <button class="secondary-action-btn" id="btn-advance-stop">
+        <i class="fa-solid fa-person-walking-arrow-right" style="color: #00e5ff;"></i>
+        <span>NEXT</span>
+      </button>
+
+      <button class="secondary-action-btn" id="btn-open-chat">
+        <i class="fa-solid fa-comments" style="color: #f4c430;"></i>
+        <span>ASK</span>
+      </button>
+
+      <button class="secondary-action-btn" id="btn-take-rest" style="flex: 0.85;">
+        <i class="fa-solid fa-person-shelter" style="color: #00e676;"></i>
+        <span>SHADE</span>
+      </button>
+    </div>
+
+    <!-- JURY TABLE INDOOR DEMO DRAWER (?demo=1 or triple-tap GPS pill) -->
+    <div id="jury-demo-drawer" class="demo-drawer" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <strong style="color: #f4c430; font-size: 0.78rem;"><i class="fa-solid fa-sliders"></i> JURY TABLE DEMO MODE</strong>
+        <div style="font-size: 0.7rem; color: #00e5ff; font-family: monospace;">
+          <span id="demo-fps-readout">60 FPS</span> • Vision <span id="demo-vision-latency">-- ms</span>
+        </div>
+        <button id="btn-close-demo-drawer" style="background: none; border: none; color: #fff; cursor: pointer; font-size: 0.85rem;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
+        <button class="demo-stop-btn" data-step="1">S1 Gate</button>
+        <button class="demo-stop-btn" data-step="2">S2 Yali</button>
+        <button class="demo-stop-btn" data-step="3">S3 Wheel</button>
+        <button class="demo-stop-btn" data-step="4">S4 Vimana</button>
+        <button class="demo-stop-btn" data-step="5">S5 Lotus</button>
+        <button class="demo-stop-btn" data-step="6">S6 Banyan</button>
+        <button class="demo-stop-btn" data-step="7">S7 Sunset</button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: #b0bec5;">
+        <span>Sun: <strong id="demo-hour-label" style="color:#f4c430;">13:00</strong></span>
+        <input type="range" id="demo-hour-slider" min="9" max="16" step="0.5" value="13" style="flex: 1; accent-color: #00e676;">
+        <button id="btn-demo-inspect-3d" style="background: rgba(0,229,255,0.2); border: 1px solid #00e5ff; color: #00e5ff; border-radius: 8px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer;">3D Preview</button>
+      </div>
+    </div>
+
+    <!-- MODAL 1: AI Guide Conversation -->
+    <div class="modal-overlay" id="modal-chat">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-comments"></i> Ask Luna</h3>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <select id="lang-select" style="background: rgba(255,255,255,0.1); border: 1px solid #00e5ff; color: #fff; padding: 5px 8px; border-radius: 12px; font-size: 0.78rem;">
+            <option value="en">EN</option>
+            <option value="ta">தமிழ்</option>
+            <option value="hi">हिंदी</option>
+          </select>
+          <button class="btn-icon-circle" id="btn-close-chat"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch;">
+          <button class="quick-q-btn" data-q="Who built Shore Temple?">🏛️ Who built this?</button>
+          <button class="quick-q-btn" data-q="Where is the coolest shaded spot right now?">🌳 Coolest shade?</button>
+          <button class="quick-q-btn" data-q="Tell me a hidden mystery of this carving.">🔍 Secret story?</button>
+          <button class="quick-q-btn" data-q="Where should I walk next?">🧭 Where next?</button>
+        </div>
+        <div class="chat-messages" id="chat-messages-container">
+          <div class="chat-bubble guide">
+            Vanakkam! I am Luna Aurora. Ask me anything about Mahabalipuram in English, Tamil, or Hindi!
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <button id="btn-mic-speak" title="Speak to Luna" class="chat-send-btn" style="background: rgba(244, 196, 48, 0.2); border: 1px solid #f4c430; color: #f4c430;">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <input type="text" class="chat-input" id="chat-input-text" placeholder="Tap mic or type question...">
+          <button class="chat-send-btn" id="btn-chat-send">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: Interactive Dual-Route ShadeMap -->
+    <div class="modal-overlay" id="modal-map">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-map"></i> Mahabalipuram ShadeMap</h3>
+        <button class="btn-icon-circle" id="btn-close-map"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="shade-savings-badge" style="background: rgba(0, 230, 118, 0.14); border: 1px solid #00e676; border-radius: 10px; padding: 6px 10px; font-size: 0.74rem; color: #e0f7fa; text-align: center; margin-bottom: 8px;">
+          Computing Solar Sun vs. Shaded Route...
+        </div>
+        <svg id="shade-map-svg" style="width: 100%; height: 245px; border-radius: 14px; border: 1.5px solid #00e5ff;"></svg>
+        <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; justify-content: space-around; margin-top: 8px;">
+          <span><i class="fa-solid fa-circle" style="color: #ffea00;"></i> Live GPS</span>
+          <span><i class="fa-solid fa-circle" style="color: #ff5252;"></i> Shortest Sun</span>
+          <span><i class="fa-solid fa-circle" style="color: #00e676;"></i> Shaded Canopy</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-top: 8px; font-size: 0.78rem; color: #b0bec5; line-height: 1.4;">
+          <div id="next-stop-meta" style="color: #00e5ff; font-weight: 600; margin-bottom: 4px;">Walk: ~47m • HIGH SHADE</div>
+          <div id="map-route-detail">Tap SHADE anytime to highlight the coolest covered route toward Banyan Canopy & Bastion.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: Gamified AR Scavenger Hunt -->
+    <div class="modal-overlay" id="modal-scavenger">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-trophy"></i> Scavenger Quests <span class="status-badge" id="user-points-badge" style="margin-left: 6px;">50 XP</span></h3>
+        <button class="btn-icon-circle" id="btn-close-scavenger"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8rem; color: #cfd8dc;">
+          Find each Pallava relief and tap <strong>SCAN RELIC</strong> or solve stop riddles!
+        </p>
+        <div class="badge-grid" id="scavenger-quests-list"></div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: Per-Stop Historical Riddle -->
+    <div class="modal-overlay" id="modal-riddle">
+      <div class="modal-header">
+        <h3 style="color: #f4c430;"><i class="fa-solid fa-scroll"></i> Station Riddle Challenge (+45 XP)</h3>
+        <button class="btn-icon-circle" id="btn-close-riddle"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div id="riddle-stop-title" style="color: #00e5ff; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px;">Stop 1 Challenge</div>
+        <p id="riddle-question-text" style="color: #ffffff; font-size: 0.95rem; line-height: 1.45; margin-bottom: 14px;"></p>
+        <div id="riddle-options-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <div id="riddle-feedback" style="margin-top: 12px; font-size: 0.82rem; font-weight: 600;"></div>
+      </div>
+    </div>
+
+    <!-- MODAL 5: Tour Completion Certificate & PDF Travel Journal -->
+    <div class="modal-overlay" id="modal-certificate" style="background: rgba(4, 7, 12, 0.97);">
+      <div class="modal-header" style="border-bottom-color: #f4c430;">
+        <h3 style="color: #f4c430;"><i class="fa-solid fa-award"></i> Heritage Expedition Sealed</h3>
+      </div>
+      <div class="modal-body" style="text-align: center; justify-content: center; padding: 20px 10px;">
+        <div style="font-size: 3.2rem; color: #f4c430; margin-bottom: 8px;">
+          <i class="fa-solid fa-certificate"></i>
+        </div>
+        <div style="font-size: 0.82rem; letter-spacing: 2px; color: #00e5ff; font-weight: 700;">MAHABALIPURAM EXPLORER CREST</div>
+        <h2 id="cert-name" style="color: #fff; font-size: 1.5rem; margin: 8px 0;">Traveler</h2>
+        <div style="font-size: 0.8rem; color: #8ba2bd;" id="cert-ticket">TICKET #LUNA-1042</div>
+
+        <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(244, 196, 48, 0.4); border-radius: 16px; padding: 14px; margin: 14px 0; text-align: left;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.85rem;">
+            <span style="color: #8ba2bd;">Stations Explored:</span>
+            <strong id="cert-stops" style="color: #00e676;">7 of 7 Stations</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+            <span style="color: #8ba2bd;">Total Exploration XP:</span>
+            <strong id="cert-xp" style="color: #f4c430;">520 Total XP</strong>
+          </div>
+        </div>
+
+        <p id="cert-farewell" style="font-size: 0.8rem; color: #b0bec5; line-height: 1.45; font-style: italic; margin-bottom: 16px;"></p>
+
+        <button id="btn-download-journal" style="background: linear-gradient(135deg, #f4c430, #ff9800); color: #000; font-weight: 800; font-size: 0.92rem; padding: 13px 20px; border-radius: 24px; border: none; cursor: pointer; width: 100%; margin-bottom: 10px;">
+          <i class="fa-solid fa-file-pdf"></i> Download PDF Travel Journal
+        </button>
+
+        <button id="btn-restart-tour" style="background: rgba(0, 229, 255, 0.16); color: #00e5ff; font-weight: 700; font-size: 0.88rem; padding: 12px 20px; border-radius: 24px; border: 1px solid #00e5ff; cursor: pointer; width: 100%;">
+          Start a New Tour Session
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Frontend Logic Scripts -->
+  <script src="js/spatialAudio.js"></script>
+  <script src="js/shadeMap.js"></script>
+  <script src="js/visionEngine.js"></script>
+  <script src="js/arScene.js"></script>
+  <script src="js/locationTracker.js"></script>
+  <script src="js/tourManager.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
