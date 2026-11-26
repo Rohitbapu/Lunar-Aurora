@@ -1,0 +1,214 @@
+/**
+ * Real-Time Mobile GPS & Site Location Tracker for Lunar Aurora
+ * Includes indoor network fallback, de-duplicated stop arrival events,
+ * and Chrome User Activation Gate compliance.
+ */
+
+class LocationTracker {
+  constructor() {
+    this.watchId = null;
+    this.currentLat = null;
+    this.currentLon = null;
+    this.accuracyMeters = null;
+    this.originLat = null;
+    this.originLon = null;
+    this.isTracking = false;
+    this.hasGpsFix = false;
+    this.isSimulated = false;
+    this.permissionState = 'unknown';
+    this.lastArrivedStep = null;
+
+    // Relative site coordinates (in meters from entrance)
+    this.userSiteX = 0;
+    this.userSiteY = 0;
+
+    // Site stops coordinates reference (meters)
+    this.stopsReference = [
+      { step: 1, name: "Imperial Sun Gate", x: 0, y: 0 },
+      { step: 2, name: "Avenue of 1,000 Pillars", x: 25, y: 40 },
+      { step: 3, name: "Celestial Chariot Wheel", x: 75, y: 85 },
+      { step: 4, name: "Grand Sanctuary Vimana", x: 30, y: 110 },
+      { step: 5, name: "Royal Lotus Hydraulic Basin", x: -20, y: 120 },
+      { step: 6, name: "Gallery of Celestial Dancers", x: -40, y: 65 },
+      { step: 7, name: "Sunset Bastion", x: 60, y: 140 }
+    ];
+
+    this.onLocationUpdated = null;
+    this.onStopArrived = null;
+  }
+
+  async checkPermissionStatus() {
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        this.permissionState = result.state;
+        if (result.state === 'granted') {
+          this.requestGpsFix();
+        }
+        result.onchange = () => {
+          this.permissionState = result.state;
+          if (result.state === 'granted') {
+            this.requestGpsFix();
+          }
+        };
+        return result.state;
+      } catch (e) {}
+    }
+    return 'unknown';
+  }
+
+  /**
+   * Must be called on a user gesture so mobile Chrome triggers the OS location dialog.
+   */
+  requestGpsFix(highAccuracy = true) {
+    if (!navigator.geolocation) {
+      this.useSimulatedGps();
+      return;
+    }
+
+    const gpsLabel = document.getElementById('gps-coords-label');
+    if (gpsLabel && !this.hasGpsFix) gpsLabel.textContent = "GPS: Locating...";
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.isSimulated = false;
+        this.handleGpsUpdate(pos);
+        this.startContinuousWatch(highAccuracy);
+      },
+      (err) => {
+        if (highAccuracy && (err.code === 2 || err.code === 3)) {
+          // Retry with Wi-Fi / Network location indoors before giving up
+          console.warn("[LocationTracker] High-accuracy GPS timed out indoors; retrying network location...");
+          this.requestGpsFix(false);
+          return;
+        }
+        this.handleGpsError(err);
+      },
+      {
+        enableHighAccuracy: highAccuracy,
+        maximumAge: highAccuracy ? 1000 : 10000,
+        timeout: highAccuracy ? 8000 : 8000
+      }
+    );
+  }
+
+  startContinuousWatch(highAccuracy = true) {
+    if (this.watchId !== null) return;
+
+    this.watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        this.isSimulated = false;
+        this.handleGpsUpdate(pos);
+      },
+      (err) => {
+        if (err.code === 1) this.handleGpsError(err);
+      },
+      {
+        enableHighAccuracy: highAccuracy,
+        maximumAge: 2500,
+        timeout: 12000
+      }
+    );
+    this.isTracking = true;
+  }
+
+  handleGpsUpdate(position) {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+    const accuracy = Math.round(position.coords.accuracy || 10);
+
+    this.hasGpsFix = true;
+    this.permissionState = 'granted';
+    this.currentLat = lat;
+    this.currentLon = lon;
+    this.accuracyMeters = accuracy;
+
+    if (this.originLat === null) {
+      this.originLat = lat;
+      this.originLon = lon;
+    }
+
+    const deltaLatMeters = (lat - this.originLat) * 111320.0;
+    const deltaLonMeters = (lon - this.originLon) * (111320.0 * Math.cos((lat * Math.PI) / 180.0));
+
+    this.userSiteX = deltaLonMeters;
+    this.userSiteY = deltaLatMeters;
+
+    this.evaluateNearbyStops();
+
+    const gpsLabel = document.getElementById('gps-coords-label');
+    if (gpsLabel) {
+      gpsLabel.textContent = `GPS: ±${accuracy}m`;
+    }
+
+    if (this.onLocationUpdated) {
+      this.onLocationUpdated({
+        lat: this.currentLat,
+        lon: this.currentLon,
+        accuracy: this.accuracyMeters,
+        siteX: this.userSiteX,
+        siteY: this.userSiteY
+      });
+    }
+  }
+
+  handleGpsError(error) {
+    const gpsLabel = document.getElementById('gps-coords-label');
+    if (error.code === 1) {
+      this.permissionState = 'denied';
+      if (gpsLabel) gpsLabel.textContent = "GPS: Tap to Allow";
+      if (typeof showNotification === 'function') {
+        showNotification("📍 Tap the 🔒 icon in Chrome's URL bar -> Permissions -> Allow Location.");
+      }
+    } else {
+      if (gpsLabel) gpsLabel.textContent = "GPS: Site Sync";
+      this.useSimulatedGps();
+    }
+  }
+
+  useSimulatedGps() {
+    this.hasGpsFix = true;
+    this.isSimulated = true;
+    this.accuracyMeters = 5;
+    this.syncToCurrentStop();
+  }
+
+  syncToCurrentStop() {
+    if (!this.isSimulated && this.currentLat !== null) return;
+    if (window.tourManager && window.tourManager.currentStopData) {
+      const s = window.tourManager.currentStopData;
+      this.userSiteX = s.x;
+      this.userSiteY = s.y;
+    }
+  }
+
+  evaluateNearbyStops() {
+    let nearestStop = null;
+    let minDistance = Infinity;
+
+    for (const stop of this.stopsReference) {
+      const dist = Math.hypot(this.userSiteX - stop.x, this.userSiteY - stop.y);
+      if (dist < minDistance) {
+        minDistance = dist;
+        nearestStop = stop;
+      }
+    }
+
+    const currentTourStep = window.tourManager ? window.tourManager.currentStep : 1;
+    // Notify only ONCE when physically arriving at a DIFFERENT stop from current step
+    if (nearestStop && minDistance <= 15 && nearestStop.step !== currentTourStep && nearestStop.step !== this.lastArrivedStep) {
+      this.lastArrivedStep = nearestStop.step;
+      if (this.onStopArrived) {
+        this.onStopArrived(nearestStop, Math.round(minDistance));
+      }
+    }
+  }
+
+  getDistanceToStop(stepNumber) {
+    const target = this.stopsReference.find(s => s.step === stepNumber);
+    if (!target) return 50;
+    return Math.round(Math.hypot(this.userSiteX - target.x, this.userSiteY - target.y));
+  }
+}
+
+window.locationTracker = new LocationTracker();
